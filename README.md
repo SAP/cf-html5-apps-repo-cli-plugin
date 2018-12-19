@@ -27,7 +27,7 @@ It allows to:
   * On Windows systems `%USERPROFILE%\go\src`
 - Open terminal/console in the root folder of repository
 - Build sources with `go build`
-- Install CF CLI plugin `cf install-plugin -f html5-cli-plugin`
+- Install CF CLI plugin `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
 
 ## Usage
 
