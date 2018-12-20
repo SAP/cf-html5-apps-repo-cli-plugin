@@ -22,6 +22,16 @@ It allows to:
 
 ## Installation
 
+If you want to __use__ latest released version and not intend to modify it, 
+you can install plugin directly from GitHub releses of this repository. For
+example, on OSX you can do it as follows (Windows users, add `.exe` at the 
+end of the same command):
+
+```bash
+cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin
+```
+
+Otherwise, you can build from source code:
 - [Clone or download](https://help.github.com/articles/cloning-a-repository/) current repository to `/src` folder of your default `GOPATH`
   * On Unix-like systems `$HOME/go/src`
   * On Windows systems `%USERPROFILE%\go\src`
