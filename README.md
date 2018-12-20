@@ -17,17 +17,19 @@ It allows to:
 
 ## Prerequisites
 
-- [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI
-- [Download](https://golang.org/dl/) and install GO
+- [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI (≥6.36.1)
+- [Download](https://golang.org/dl/) and install GO (≥1.9.2)
 
-## Getting Started
+## Installation
 
-- Clone or download current repository to `/src` folder of your default `GOPATH`
+- [Clone or download](https://help.github.com/articles/cloning-a-repository/) current repository to `/src` folder of your default `GOPATH`
   * On Unix-like systems `$HOME/go/src`
   * On Windows systems `%USERPROFILE%\go\src`
 - Open terminal/console in the root folder of repository
 - Build sources with `go build`
-- Install CF CLI plugin `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
+- Install CF CLI plugin
+  * On Unix-like systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
+  * On Windows systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin.exe`
 
 ## Usage
 
