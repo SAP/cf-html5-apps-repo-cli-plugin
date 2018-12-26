@@ -7,6 +7,8 @@ import (
 	"cf-html5-apps-repo-cli-plugin/ui"
 	"strconv"
 
+	"strings"
+
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin"
 )
@@ -180,19 +182,22 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 	for serviceName, serviceBindings := range env.SystemEnvJSON.VCAPServices {
 		for _, serviceBinding := range serviceBindings {
 			if serviceBinding.Credentials.HTML5AppsRepo != nil {
-				// Get list of applications for app-host-id
-				log.Tracef("Getting list of applications for service '%s' and app-host-id '%s'\n", serviceName, serviceBinding.Credentials.HTML5AppsRepo.AppHostID)
-				applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-					html5Context.HTML5AppRuntimeServiceInstanceKeyToken, serviceBinding.Credentials.HTML5AppsRepo.AppHostID)
-				if err != nil {
-					ui.Failed("Could not get list of applications for app-host-id '%s': %+v", serviceBinding.Credentials.HTML5AppsRepo.AppHostID, err)
-					return Failure
+				AppHostIDs := strings.Split(serviceBinding.Credentials.HTML5AppsRepo.AppHostID, ",")
+				for _, appHostID := range AppHostIDs {
+					// Get list of applications for app-host-id
+					log.Tracef("Getting list of applications for service '%s' and app-host-id '%s'\n", serviceName, appHostID)
+					applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostID)
+					if err != nil {
+						ui.Failed("Could not get list of applications for app-host-id '%s': %+v", appHostID, err)
+						return Failure
+					}
+					apps := make([]App, 0)
+					for _, app := range applications {
+						apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn})
+					}
+					servicesData.Services = append(servicesData.Services, Service{GUID: appHostID, Name: serviceName, Apps: apps})
 				}
-				apps := make([]App, 0)
-				for _, app := range applications {
-					apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn})
-				}
-				servicesData.Services = append(servicesData.Services, Service{GUID: serviceBinding.Credentials.HTML5AppsRepo.AppHostID, Name: serviceName, Apps: apps})
 			}
 		}
 	}
