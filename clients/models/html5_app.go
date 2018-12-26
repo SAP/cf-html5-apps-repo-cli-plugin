@@ -10,4 +10,5 @@ type HTML5App struct {
 	ChangedOn          string `json:"changedOn,omitempty"`
 	CreatedOn          string `json:"createdOn,omitempty"`
 	IsDefault          bool   `json:"isDefault,omitempty"`
+	IsPublic           bool   `json:"public,omitempty"`
 }

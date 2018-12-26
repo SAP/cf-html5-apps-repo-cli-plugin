@@ -157,7 +157,7 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 		}
 		apps := make([]App, 0)
 		for _, app := range applications {
-			apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn})
+			apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn, Public: app.IsPublic})
 		}
 		data.Services = append(data.Services, Service{Name: serviceInstance.Name, GUID: serviceInstance.GUID, Apps: apps})
 	}
@@ -194,7 +194,7 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 					}
 					apps := make([]App, 0)
 					for _, app := range applications {
-						apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn})
+						apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn, Public: app.IsPublic})
 					}
 					servicesData.Services = append(servicesData.Services, Service{GUID: appHostID, Name: serviceName, Apps: apps})
 				}
@@ -213,13 +213,14 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 	ui.Say("")
 
 	// Display information about HTML5 applications
-	table := ui.Table([]string{"name", "version", "app-host-id", "service instance", "last changed"})
+	table := ui.Table([]string{"name", "version", "app-host-id", "service instance", "visibility", "last changed"})
 	for _, service := range data.Services {
 		for _, app := range service.Apps {
 			table.Add(app.Name,
 				terminal.LogStdoutColor(app.Version),
 				terminal.LogStdoutColor(service.GUID),
 				terminal.LogStdoutColor(service.Name),
+				terminal.LogStdoutColor((map[bool]string{true: "public", false: "private"})[app.Public]),
 				terminal.LogStdoutColor(app.Changed))
 		}
 	}
@@ -229,6 +230,7 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 				terminal.AdvisoryColor(app.Version),
 				terminal.AdvisoryColor(service.GUID),
 				terminal.AdvisoryColor(service.Name),
+				terminal.AdvisoryColor((map[bool]string{true: "public", false: "private"})[app.Public]),
 				terminal.AdvisoryColor(app.Changed))
 		}
 	}
@@ -390,7 +392,7 @@ func (c *ListCommand) ListSpaceApps() ExecutionStatus {
 		}
 		apps := make([]App, 0)
 		for _, app := range applications {
-			apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn})
+			apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn, Public: app.IsPublic})
 		}
 		data.Services = append(data.Services, Service{Name: serviceInstance.Name, GUID: serviceInstance.GUID, UpdatedAt: serviceInstance.UpdatedAt, Apps: apps})
 	}
@@ -406,13 +408,13 @@ func (c *ListCommand) ListSpaceApps() ExecutionStatus {
 	ui.Say("")
 
 	// Display information about HTML5 applications
-	table := ui.Table([]string{"name", "version", "app-host-id", "service instance", "last changed"})
+	table := ui.Table([]string{"name", "version", "app-host-id", "service instance", "visibility", "last changed"})
 	for _, service := range data.Services {
 		if len(service.Apps) == 0 {
-			table.Add("-", "-", service.GUID, service.Name, service.UpdatedAt)
+			table.Add("-", "-", service.GUID, service.Name, "-", service.UpdatedAt)
 		} else {
 			for _, app := range service.Apps {
-				table.Add(app.Name, app.Version, service.GUID, service.Name, app.Changed)
+				table.Add(app.Name, app.Version, service.GUID, service.Name, (map[bool]string{true: "public", false: "private"})[app.Public], app.Changed)
 			}
 		}
 	}
@@ -426,6 +428,7 @@ type App struct {
 	Name    string
 	Version string
 	Changed string
+	Public  bool
 }
 
 // Service service struct
