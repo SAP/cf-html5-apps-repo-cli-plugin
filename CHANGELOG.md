@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- Support of multiple app-host-id values in buisiness service binding information
 - Metadata, including file size and ETag, is displayed in the list of HTML5 application files
 - Support custom HTML5 Application Repository service name via `HTML5_SERVICE_NAME` environment variable (default: `html5-apps-repo`)
 - Apache License v2.0 in `LICENSE` file
