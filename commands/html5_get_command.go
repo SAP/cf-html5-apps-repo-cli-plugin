@@ -174,15 +174,23 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 	}
 
 	// Get files
-	for _, file := range allFiles {
-		// Get content of single file
+	filesChannels := make([]chan models.HTML5ApplicationFileContent, len(allFiles))
+	for idx, file := range allFiles {
 		log.Tracef("Getting content of file %s\n", file.FilePath)
-		content, err := clients.GetFileContent(
+		filesChannel := make(chan models.HTML5ApplicationFileContent)
+		filesChannels[idx] = filesChannel
+		go clients.GetFileContent(
 			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 			file.FilePath,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostGUID)
-		if err != nil {
+			appHostGUID,
+			filesChannel)
+	}
+
+	// Save files
+	for idx, file := range allFiles {
+		fileContent := <-filesChannels[idx]
+		if fileContent.Error != nil {
 			ui.Failed("Could not get file contents of %s: %+v", file.FilePath, err)
 			return Failure
 		}
@@ -201,7 +209,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 		}
 		// Write file
 		log.Tracef("Writing file %s\n", filePath)
-		err = ioutil.WriteFile(filePath, content, 0644)
+		err = ioutil.WriteFile(filePath, fileContent.Content, 0644)
 		if err != nil {
 			ui.Failed("Could not write file %s: %+v", filePath, err)
 			return Failure
@@ -254,12 +262,16 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID
 	}
 
 	// Get file contents
-	content, err := clients.GetFileContent(
+	fileContentChan := make(chan models.HTML5ApplicationFileContent)
+	go clients.GetFileContent(
 		*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 		filePath,
 		html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-		appHostGUID)
-	if err != nil {
+		appHostGUID,
+		fileContentChan)
+	fileContent := <-fileContentChan
+
+	if fileContent.Error != nil {
 		ui.Failed("Could not get file contents of %s: %+v", filePath, err)
 		return Failure
 	}
@@ -275,7 +287,7 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID
 		// Print to stdout
 		ui.Ok()
 		ui.Say("")
-		ui.Say(string(content))
+		ui.Say(string(fileContent.Content))
 	} else {
 		// Directory path
 		dirPath := strings.Split(output, slash)
@@ -290,7 +302,7 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID
 		}
 		// Write file
 		log.Tracef("Writing file %s\n", output)
-		err = ioutil.WriteFile(output, content, 0644)
+		err = ioutil.WriteFile(output, fileContent.Content, 0644)
 		if err != nil {
 			ui.Failed("Could not write file %s: %+v", output, err)
 			return Failure
@@ -381,15 +393,23 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 	}
 
 	// Get files
-	for _, file := range files {
-		// Get content of single file
+	filesChannels := make([]chan models.HTML5ApplicationFileContent, len(files))
+	for idx, file := range files {
 		log.Tracef("Getting content of file %s\n", file.FilePath)
-		content, err := clients.GetFileContent(
+		filesChannel := make(chan models.HTML5ApplicationFileContent)
+		filesChannels[idx] = filesChannel
+		go clients.GetFileContent(
 			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 			file.FilePath,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostGUID)
-		if err != nil {
+			appHostGUID,
+			filesChannel)
+	}
+
+	// Save files
+	for idx, file := range files {
+		fileContent := <-filesChannels[idx]
+		if fileContent.Error != nil {
 			ui.Failed("Could not get file contents of %s: %+v", file.FilePath, err)
 			return Failure
 		}
@@ -408,7 +428,7 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 		}
 		// Write file
 		log.Tracef("Writing file %s\n", filePath)
-		err = ioutil.WriteFile(filePath, content, 0644)
+		err = ioutil.WriteFile(filePath, fileContent.Content, 0644)
 		if err != nil {
 			ui.Failed("Could not write file %s: %+v", filePath, err)
 			return Failure
