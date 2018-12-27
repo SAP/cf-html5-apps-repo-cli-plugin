@@ -4,6 +4,7 @@ import (
 	clients "cf-html5-apps-repo-cli-plugin/clients"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
+	"flag"
 	"strings"
 
 	"github.com/cloudfoundry/cli/cf/terminal"
@@ -20,10 +21,11 @@ type DeleteCommand struct {
 func (c *DeleteCommand) GetPluginCommand() plugin.Command {
 	return plugin.Command{
 		Name:     "html5-delete",
-		HelpText: "Delete one or multiple app-host service instances and all dependent service keys",
+		HelpText: "Delete one or multiple app-host service instances or content uploaded with these instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-delete APP_HOST_ID [...]",
+			Usage: "cf html5-delete [--content] APP_HOST_ID [...]",
 			Options: map[string]string{
+				"-content":    "delete content only",
 				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance",
 			},
 		},
@@ -34,30 +36,78 @@ func (c *DeleteCommand) GetPluginCommand() plugin.Command {
 func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 	log.Tracef("Executing command '%s': args: '%v'\n", c.Name, args)
 
-	// Parse arguments
-	var key = "_"
-	var argsMap = make(map[string][]string)
-	for _, arg := range args {
-		if string(arg[0]) == "-" {
-			key = arg
-			continue
-		}
-		if argsMap[key] == nil {
-			argsMap[key] = make([]string, 0)
-		}
-		argsMap[key] = append(argsMap[key], arg)
-		key = "_"
-	}
+	flagSet := flag.NewFlagSet("html5-delete", flag.ContinueOnError)
+	contentFlag := flagSet.Bool("content", false, "delete content only")
+	flagSet.Parse(args)
 
-	// Define app-host-id
-
-	if argsMap["_"] != nil {
-		// Delete service instances
-		return c.DeleteServiceInstances(argsMap["_"])
+	if flagSet.NArg() > 0 {
+		appHostGUIDs := args[len(args)-flagSet.NArg():]
+		if *contentFlag {
+			return c.DeleteServiceInstancesContent(appHostGUIDs)
+		}
+		return c.DeleteServiceInstances(appHostGUIDs)
 	}
 
 	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more detals")
 	return Failure
+}
+
+// DeleteServiceInstancesContent delete service instances content by app-host-ids
+func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string) ExecutionStatus {
+	log.Tracef("Deleting content of service instances by app-host-ids: %v\n", appHostGUIDs)
+	var err error
+
+	// Get context
+	log.Tracef("Getting context (org/space/username)\n")
+	context, err := c.GetContext()
+	if err != nil {
+		ui.Failed("Could not get org and space: %s", err.Error())
+		return Failure
+	}
+
+	ui.Say("Deleting content of service instances with app-host-id %s in org %s / space %s as %s...",
+		terminal.EntityNameColor(strings.Join(appHostGUIDs, ", ")),
+		terminal.EntityNameColor(context.Org),
+		terminal.EntityNameColor(context.Space),
+		terminal.EntityNameColor(context.Username))
+
+	for _, appHostGUID := range appHostGUIDs {
+		// Create service key for DT
+		log.Tracef("Creating service key for app-host-id '%s'\n", appHostGUID)
+		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID)
+		if err != nil {
+			ui.Failed("Could not create service key for service instance with id '%s' : %+v", appHostGUID, err)
+			return Failure
+		}
+
+		// Obtain access token
+		log.Tracef("Obtaining access token for service key '%s'\n", serviceKey.Name)
+		token, err := clients.GetToken(serviceKey.Credentials)
+		if err != nil {
+			ui.Failed("Could not obtain access token for service key '': %+v", serviceKey.Name, err)
+			return Failure
+		}
+
+		// Delete app-host service content
+		log.Tracef("Deleting content of service with app-host-id '%s'\n", appHostGUID)
+		if clients.DeleteServiceContent(*serviceKey.Credentials.URI, token) != nil {
+			ui.Failed("Could not delete content of service with app-host-id '%s' : %+v", appHostGUID, err)
+			return Failure
+		}
+
+		// Delete temporarry service keys
+		log.Tracef("Deleting temporarry service key: '%s'\n", serviceKey.Name)
+		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID)
+		if err != nil {
+			ui.Failed("Could not delete service key '%s' : %+v", serviceKey.Name, err)
+			return Failure
+		}
+	}
+
+	ui.Ok()
+	ui.Say("")
+
+	return Success
 }
 
 // DeleteServiceInstances delete service instances by app-host-ids,
