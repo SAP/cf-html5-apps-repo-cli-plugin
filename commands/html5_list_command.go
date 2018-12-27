@@ -302,17 +302,18 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostID 
 
 	// Get files size and etag
 	start := time.Now()
-	meta := make(chan models.HTML5ApplicationFileMetadata)
+	metas := make([]chan models.HTML5ApplicationFileMetadata, len(files))
 	for idx := range files {
+		metas[idx] = make(chan models.HTML5ApplicationFileMetadata)
 		go clients.GetFileMeta(
 			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 			files[idx].FilePath,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 			appHostID,
-			meta)
+			metas[idx])
 	}
 	for idx := range files {
-		files[idx].FileMetadata = <-meta
+		files[idx].FileMetadata = <-metas[idx]
 		if files[idx].FileMetadata.Error != nil {
 			ui.Failed("Could not get of file metadata for file %s: %+v", files[idx].FilePath, files[idx].FileMetadata.Error)
 			return Failure
