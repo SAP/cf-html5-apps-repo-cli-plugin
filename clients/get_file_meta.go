@@ -9,7 +9,7 @@ import (
 )
 
 // GetFileMeta get file size and etag
-func GetFileMeta(serviceURL string, filePath string, accessToken string, appHostGUID string) (models.HTML5ApplicationFileMetadata, error) {
+func GetFileMeta(serviceURL string, filePath string, accessToken string, appHostGUID string, resultChannel chan<- models.HTML5ApplicationFileMetadata) {
 	var metaData models.HTML5ApplicationFileMetadata
 	var request *http.Request
 	var response *http.Response
@@ -18,12 +18,14 @@ func GetFileMeta(serviceURL string, filePath string, accessToken string, appHost
 
 	html5URL = serviceURL + filePath
 
-	log.Tracef("Making HEAD request to: %s", html5URL)
+	log.Tracef("Making HEAD request to: %s\n", html5URL)
 
 	client := &http.Client{}
 	request, err = http.NewRequest("HEAD", html5URL, nil)
 	if err != nil {
-		return metaData, err
+		metaData.Error = err
+		resultChannel <- metaData
+		return
 	}
 	request.Header.Add("Authorization", "Bearer "+accessToken)
 	if appHostGUID != "" {
@@ -32,16 +34,20 @@ func GetFileMeta(serviceURL string, filePath string, accessToken string, appHost
 	startTime := time.Now()
 	response, err = client.Do(request)
 	elapsedTime := time.Since(startTime)
-	log.Tracef(" (%v)\n", elapsedTime)
+	log.Tracef("Request to %s took %v\n", html5URL, elapsedTime)
 	if err != nil {
-		return metaData, err
+		metaData.Error = err
+		resultChannel <- metaData
+		return
 	}
 
 	metaData.ETag = response.Header.Get("Etag")
 	metaData.FileSize, err = strconv.Atoi(response.Header.Get("Content-Length"))
 	if err != nil {
-		return metaData, err
+		metaData.Error = err
+		resultChannel <- metaData
+		return
 	}
 
-	return metaData, nil
+	resultChannel <- metaData
 }

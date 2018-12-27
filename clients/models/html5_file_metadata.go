@@ -4,4 +4,5 @@ package models
 type HTML5ApplicationFileMetadata struct {
 	ETag     string
 	FileSize int
+	Error    error
 }

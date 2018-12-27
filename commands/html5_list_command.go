@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin"
@@ -300,18 +301,25 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostID 
 	}
 
 	// Get files size and etag
+	start := time.Now()
+	meta := make(chan models.HTML5ApplicationFileMetadata)
 	for idx := range files {
-		meta, err := clients.GetFileMeta(
+		go clients.GetFileMeta(
 			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 			files[idx].FilePath,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostID)
-		if err != nil {
-			ui.Failed("Could not get of file metadata for file %s: %+v", files[idx].FilePath, err)
+			appHostID,
+			meta)
+	}
+	for idx := range files {
+		files[idx].FileMetadata = <-meta
+		if files[idx].FileMetadata.Error != nil {
+			ui.Failed("Could not get of file metadata for file %s: %+v", files[idx].FilePath, files[idx].FileMetadata.Error)
 			return Failure
 		}
-		files[idx].FileMetadata = meta
 	}
+	secs := time.Since(start).Seconds()
+	log.Tracef("Fetching files metadata took: %.2fs\n", secs)
 
 	// Clean-up HTML5 context
 	err = c.CleanHTML5Context(html5Context)
