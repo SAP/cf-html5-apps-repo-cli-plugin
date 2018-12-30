@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- Support of `html5-info` command
 - Application visibility (private/public) in the list of HTML5 applications
 - Support of `html5-delete` command
 - Support of multiple app-host-id values in buisiness service binding information

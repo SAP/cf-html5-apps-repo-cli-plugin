@@ -26,6 +26,7 @@ var Commands = []commands.Command{
 	&commands.GetCommand{},
 	&commands.PushCommand{},
 	&commands.DeleteCommand{},
+	&commands.InfoCommand{},
 }
 
 // Run runs this plugin
