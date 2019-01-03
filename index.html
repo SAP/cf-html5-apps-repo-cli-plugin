@@ -13,12 +13,25 @@
             padding: 0;
             font-family: "Source Sans Pro", Helvetica, Arial, sans-serif;
         }
-        main, footer > span {
+        main, header > span, footer > span {
+            box-sizing:border-box;
             display: block;
-            width: 61.25rem;
+            width: 100%;
             margin: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        @media screen and (min-width: 62rem) {
+            main, header > span, footer > span {
+                padding-left: 0;
+                padding-right: 0;
+                width: 61.25rem;
+            }
         }
         header {
+            min-height: 8rem;
+        }
+        header > span {
             min-height: 8rem;
         }
         h1, h2, h3 {
@@ -28,7 +41,6 @@
             text-align: left;
         }
         header {
-            --min-height: 6rem;
             text-align: center;
             background-color: #3f5060;
             background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIKCSB2aWV3Qm94PSIwIDAgMjAyNCAxNjEyIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAyMDI0IDE2MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KICA8ZyBpZD0iTGF5ZXJfMiI+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBmaWxsPSIjRkZGRkZGIiBmaWxsLW9wYWNpdHk9IjMuMDAwMDAwZS0wMiIgZD0iTTUyMS4zLDc1Ny4yYzkxLjUtNzYuNSw2NTUuOSwyMjMuNSw2NTUuOSwzNjNjMCwxNjUuNS01NTIuNCw1NzIuNi03MTIuNCw0NzcuNgogICAgICBDMzAyLjYsMTUwMS41LDQwMy41LDg1NS43LDUyMS4zLDc1Ny4yeiIvPgogICAgPHBhdGggY2xhc3M9InN0MSIgZmlsbD0iI0ZGRkZGRiIgZmlsbC1vcGFjaXR5PSIzLjAwMDAwMGUtMDIiIGQ9Ik04OS44LDExODEuOGMtMTQ2LTY5LjEtMTA1LTkwNS40LDU3LjktMTAwMWMxNjIuMS05NS4xLDEwOTIuNCwzMzYuOCwxMDM0LDU4MgogICAgICBDMTEyNS43LDk5Ny43LDI3NS44LDEyNjkuOCw4OS44LDExODEuOHoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDEiIGZpbGw9IiNGRkZGRkYiIGZpbGwtb3BhY2l0eT0iMy4wMDAwMDBlLTAyIiBkPSJNMTYxNS4xLDE0MjEuOGMtMTcwLjMsOTUuOC05NjcuMy01MjkuNy05NDcuNy03NTcuNWMxOS41LTIyNi42LDEwOTYuOC04NDMuMywxMjk4LTYxNC4xCiAgICAgIEMyMTU4LjIsMjcwLDE4MzIuMSwxMjk5LjcsMTYxNS4xLDE0MjEuOHoiLz4KICA8L2c+Cjwvc3ZnPgo=');
@@ -86,7 +98,7 @@
     </style>
 </head>
 <body>
-    <header></header>
+    <header><span></span></header>
     <main>
         <h1>CF HTML5 Applications Repository CLI Plugin</h1>
         <a href="https://github.com/SAP/cf-html5-apps-repo-cli-plugin/" class="logo">https://github.com/SAP/cf-html5-apps-repo-cli-plugin/</a>
