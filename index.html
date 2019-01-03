@@ -5,7 +5,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Promo</title>
+    <title>CF HTML5 Applications Repository CLI Plugin</title>
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400" rel="stylesheet">
     <style>
         html, body {
@@ -13,8 +13,10 @@
             padding: 0;
             font-family: "Source Sans Pro", Helvetica, Arial, sans-serif;
         }
-        header, main, footer {
-            padding: 0.5rem 1.5rem;
+        main, footer > span {
+            display: block;
+            width: 61.25rem;
+            margin: auto;
         }
         header {
             min-height: 8rem;
@@ -44,6 +46,7 @@
             justify-content: space-between;
             background: #3f5060;
             margin-top: 2rem;
+            padding: 1rem 0;
             text-align:left;
             color: white;
         }
@@ -80,14 +83,6 @@
             overflow: auto;
             white-space: pre;
         }
-        .signature {
-            font-style: italic;
-        }
-        code a, code a:link, code a:hover, code a:visited {
-            color: white;
-            text-decoration: none;
-            cursor: text;
-        }
     </style>
 </head>
 <body>
@@ -104,9 +99,9 @@
             Install CF HTML5 Applications Repository CLI Plugin with just a single command and discover the whole new HTML5 applications development experience.
         </p>
         <h3>macOS (x64)</h3>
-        <pre><code class="shell">cf install-plugin <a href="https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin">https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin</a></code></pre>
+        <pre><code class="shell">cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin</code></pre>
         <h3>Windows (x64)</h3>
-        <pre><code class="shell">cf install-plugin <a href="https:/https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin.exe">https:/https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin.exe</a></code></pre>
+        <pre><code class="shell">cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin.exe</code></pre>
         <h2>Play</h2>
         <p>You can now push HTML5 application to HTML5 Applications Repository without a deployer application</p>
         <code class="shell">mkdir myapp
