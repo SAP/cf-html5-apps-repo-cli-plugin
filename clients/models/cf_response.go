@@ -49,11 +49,12 @@ type CFResourceEntity struct {
 
 // CFCredentials Cloud Foundry response resource entity credentials
 type CFCredentials struct {
-	Vendor          *string `json:"vendor,omitempty"`
-	URI             *string `json:"uri,omitempty"`
-	GrantType       *string `json:"grant_type,omitempty"`
-	SapCloudService *string `json:"sap.cloud.service,omitempty"`
-	UAA             *CFUAA  `json:"uaa,omitempty"`
+	Vendor               *string `json:"vendor,omitempty"`
+	URI                  *string `json:"uri,omitempty"`
+	GrantType            *string `json:"grant_type,omitempty"`
+	SapCloudService      *string `json:"sap.cloud.service,omitempty"`
+	SapCloudServiceAlias *string `json:"sap.cloud.service.alias,omitempty"`
+	UAA                  *CFUAA  `json:"uaa,omitempty"`
 }
 
 // CFUAA Cloud Foundry XSUAA credentials

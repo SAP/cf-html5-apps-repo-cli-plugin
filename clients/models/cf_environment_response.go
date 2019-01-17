@@ -13,7 +13,22 @@ type CFSystemEnvJSON struct {
 
 // CFApplicationEnvJSON struct
 type CFApplicationEnvJSON struct {
-	VCAPApplication map[string]interface{} `json:"VCAP_APPLICATION,omitempty"`
+	VCAPApplication CFVCAPApplication `json:"VCAP_APPLICATION,omitempty"`
+}
+
+// CFVCAPApplication struct
+type CFVCAPApplication struct {
+	CFApi              string         `json:"cf_api,omitempty"`
+	Limits             map[string]int `json:"limits,omitempty"`
+	ApplicationName    string         `json:"application_name,omitempty"`
+	ApplicationUris    []string       `json:"application_uris,omitempty"`
+	Name               string         `json:"name,omitempty"`
+	SpaceName          string         `json:"space_name,omitempty"`
+	SpaceID            string         `json:"space_id,omitempty"`
+	Uris               []string       `json:"uris,omitempty"`
+	ApplicationID      string         `json:"application_id,omitempty"`
+	Version            string         `json:"version,omitempty"`
+	ApplicationVersion string         `json:"application_version,omitempty"`
 }
 
 // CFServiceBinding struct
@@ -25,10 +40,11 @@ type CFServiceBinding struct {
 
 // CFBindingCredentials struct
 type CFBindingCredentials struct {
-	Endpoints       *map[string]string `json:"endpoints,omitempty"`
-	HTML5AppsRepo   *HTML5AppsRepo     `json:"html5-apps-repo,omitempty"`
-	SAPCloudService *string            `json:"sap.cloud.service,omitempty"`
-	UAA             *XSUAA             `json:"uaa,omitempty"`
+	Endpoints            *map[string]string `json:"endpoints,omitempty"`
+	HTML5AppsRepo        *HTML5AppsRepo     `json:"html5-apps-repo,omitempty"`
+	SAPCloudService      *string            `json:"sap.cloud.service,omitempty"`
+	SAPCloudServiceAlias *string            `json:"sap.cloud.service.alias,omitempty"`
+	UAA                  *XSUAA             `json:"uaa,omitempty"`
 }
 
 // HTML5AppsRepo struct

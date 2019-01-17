@@ -94,6 +94,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 			ui.Failed("Could not obtain access token for service key '%s': %+v", serviceKey.Name, err)
 			return Failure
 		}
+		log.Tracef("Access token for service key '%s': %s\n", serviceKey.Name, token)
 
 		// Get app-host service info
 		log.Tracef("Getting information about service with app-host-id '%s'\n", appHostGUID)

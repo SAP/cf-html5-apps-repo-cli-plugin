@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- Support of `--url` flag for `html5-list` command
 - Support of `html5-info` command
 - Application visibility (private/public) in the list of HTML5 applications
 - Support of `html5-delete` command

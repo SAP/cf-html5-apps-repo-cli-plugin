@@ -27,12 +27,13 @@ func (c *ListCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-list",
 		HelpText: "Display list of HTML5 applications or file paths of specified application",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID] [-a CF_APP_NAME]",
+			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID] [-a CF_APP_NAME [-u]]",
 			Options: map[string]string{
 				"APP_NAME":    "Application name, which file paths should be listed. If not provided, list of applications will be printed",
 				"APP_VERSION": "Application version, which file paths should be listed. If not provided, current active version will be used",
 				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
 				"-app, -a":    "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
+				"-url, -u":    "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag",
 			},
 		},
 	}
@@ -53,10 +54,10 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 	for _, arg := range args {
 		if string(arg[0]) == "-" {
 			key = arg
+			if argsMap[key] == nil {
+				argsMap[key] = make([]string, 0)
+			}
 			continue
-		}
-		if argsMap[key] == nil {
-			argsMap[key] = make([]string, 0)
 		}
 		argsMap[key] = append(argsMap[key], arg)
 		key = "_"
@@ -79,9 +80,15 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		app = argsMap["--app"][0]
 	}
 
+	// Show URLs
+	var showUrls = false
+	if argsMap["-u"] != nil || argsMap["--url"] != nil {
+		showUrls = true
+	}
+
 	if app != "" {
 		// List HTML5 applications available in CF application context
-		return c.ListAppApps(app)
+		return c.ListAppApps(app, showUrls)
 	} else if len(argsMap["_"]) == 3 {
 		// List files paths of application with version from app-host-id
 		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], argsMap["_"][2])
@@ -98,7 +105,7 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 }
 
 // ListAppApps get list of HTML5 applications available in CF application context
-func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
+func (c *ListCommand) ListAppApps(appName string, showUrls bool) ExecutionStatus {
 	log.Tracef("Listing HTML5 applications available for CF application '%s'\n", appName)
 
 	// Get context
@@ -184,6 +191,12 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 		for _, serviceBinding := range serviceBindings {
 			if serviceBinding.Credentials.HTML5AppsRepo != nil {
 				AppHostIDs := strings.Split(serviceBinding.Credentials.HTML5AppsRepo.AppHostID, ",")
+				prefix := ""
+				if serviceBinding.Credentials.SAPCloudServiceAlias != nil {
+					prefix = *serviceBinding.Credentials.SAPCloudServiceAlias + "."
+				} else if serviceBinding.Credentials.SAPCloudService != nil {
+					prefix = strings.Replace(strings.Replace(*serviceBinding.Credentials.SAPCloudService, ".", "", -1), "-", "", -1) + "."
+				}
 				for _, appHostID := range AppHostIDs {
 					// Get list of applications for app-host-id
 					log.Tracef("Getting list of applications for service '%s' and app-host-id '%s'\n", serviceName, appHostID)
@@ -197,7 +210,8 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 					for _, app := range applications {
 						apps = append(apps, App{Name: app.ApplicationName, Version: app.ApplicationVersion, Changed: app.ChangedOn, Public: app.IsPublic})
 					}
-					servicesData.Services = append(servicesData.Services, Service{GUID: appHostID, Name: serviceName, Apps: apps})
+
+					servicesData.Services = append(servicesData.Services, Service{GUID: appHostID, Name: serviceName, Apps: apps, Prefix: prefix})
 				}
 			}
 		}
@@ -213,26 +227,37 @@ func (c *ListCommand) ListAppApps(appName string) ExecutionStatus {
 	ui.Ok()
 	ui.Say("")
 
+	columns := make([]string, 0)
+	columns = append(columns, "name", "version", "app-host-id", "service instance", "visibility", "last changed")
+	if showUrls {
+		columns = append(columns, "url")
+	}
+
 	// Display information about HTML5 applications
-	table := ui.Table([]string{"name", "version", "app-host-id", "service instance", "visibility", "last changed"})
+	table := ui.Table(columns)
+	type ColorFunction = func(message string) string
+	addRow := func(service Service, app App, fn ColorFunction) {
+		row := make([]string, 0)
+		row = append(row,
+			app.Name,
+			fn(app.Version),
+			fn(service.GUID),
+			fn(service.Name),
+			fn((map[bool]string{true: "public", false: "private"})[app.Public]),
+			fn(app.Changed))
+		if showUrls {
+			row = append(row, fn("https://"+env.ApplicationEnvJSON.VCAPApplication.Uris[0]+"/"+service.Prefix+app.Name+"-"+app.Version+"/"))
+		}
+		table.Add(row...)
+	}
 	for _, service := range data.Services {
 		for _, app := range service.Apps {
-			table.Add(app.Name,
-				terminal.LogStdoutColor(app.Version),
-				terminal.LogStdoutColor(service.GUID),
-				terminal.LogStdoutColor(service.Name),
-				terminal.LogStdoutColor((map[bool]string{true: "public", false: "private"})[app.Public]),
-				terminal.LogStdoutColor(app.Changed))
+			addRow(service, app, terminal.LogStdoutColor)
 		}
 	}
 	for _, service := range servicesData.Services {
 		for _, app := range service.Apps {
-			table.Add(app.Name,
-				terminal.AdvisoryColor(app.Version),
-				terminal.AdvisoryColor(service.GUID),
-				terminal.AdvisoryColor(service.Name),
-				terminal.AdvisoryColor((map[bool]string{true: "public", false: "private"})[app.Public]),
-				terminal.AdvisoryColor(app.Changed))
+			addRow(service, app, terminal.AdvisoryColor)
 		}
 	}
 	table.Print()
@@ -446,6 +471,7 @@ type Service struct {
 	Name      string
 	GUID      string
 	Apps      []App
+	Prefix    string
 }
 
 // Model model struct
