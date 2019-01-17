@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Copyright in `NOTICE` file
 - Change log in `CANGELOG.md` file
 
+### Fixed
+- Check that directories are apps before trying to upload them with `html5-push` without arguments (#1)
+
 ## [1.0.0] - 2018-07-26
 ### Added
 - Documentation in `README.md` file

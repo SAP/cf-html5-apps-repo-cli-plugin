@@ -263,7 +263,7 @@ func findAppDirectories(cwd string) ([]string, error) {
 		return dirs, errors.New("Could not read current working directory contents")
 	}
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() && isAppDirectory(file.Name()) {
 			dirs = append(dirs, cwd+slash+file.Name())
 		}
 	}
