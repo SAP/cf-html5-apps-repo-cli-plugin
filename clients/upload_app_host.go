@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
+	"strconv"
 )
 
 // UploadAppHost upload ZIP files with HTML5 applications to html5-apps-repo service
@@ -76,7 +77,7 @@ func UploadAppHost(serviceURL string, zipFiles []string, accessToken string) err
 		// Get response body
 		defer response.Body.Close()
 		body, _ := ioutil.ReadAll(response.Body)
-		log.Tracef("response: %s\n", string(response.StatusCode)+" "+string(body))
+		log.Tracef("response: %s\n", strconv.Itoa(response.StatusCode)+" "+string(body))
 		// Return error
 		return fmt.Errorf("Could not upload files: %+v", zipFiles)
 	}

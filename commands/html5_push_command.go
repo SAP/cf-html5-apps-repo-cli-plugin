@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin"
 )
 
@@ -107,6 +108,36 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 	var err error
 	var zipFiles []string
 
+	// Get context
+	log.Tracef("Getting context (org/space/username)\n")
+	context, err := c.GetContext()
+	if err != nil {
+		ui.Failed("Could not get org and space: %s", err.Error())
+		return Failure
+	}
+
+	ui.Say("Pushing HTML5 applications in org %s / space %s as %s...",
+		terminal.EntityNameColor(context.Org),
+		terminal.EntityNameColor(context.Space),
+		terminal.EntityNameColor(context.Username))
+
+	// Check appPaths are application directories
+	dirs := make([]string, 0)
+	for _, dir := range appPaths {
+		if isAppDirectory(dir) {
+			dirs = append(dirs, dir)
+		} else {
+			ui.Say("%s%s%s",
+				terminal.AdvisoryColor("WARNING: Directory '"),
+				terminal.EntityNameColor(dir),
+				terminal.AdvisoryColor("' is not an application and will not be pushed!\n"))
+		}
+	}
+	if len(dirs) == 0 {
+		ui.Failed("Nothing to push. Make sure provided directories contain manifest.json and xs-app.json files")
+		return Failure
+	}
+
 	// Create new app-host if needed
 	if appHostGUID == "" {
 
@@ -197,7 +228,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 	// Zip applications
 	tmp := os.TempDir()
 	zipFiles = make([]string, 0)
-	for _, appPath := range appPaths {
+	for _, appPath := range dirs {
 		log.Tracef("Zipping the directory: '%s'\n", appPath)
 
 		var appPathFiles = make([]string, 0)
@@ -290,10 +321,12 @@ func isAppDirectory(path string) bool {
 	if err != nil {
 		return false
 	}
+	log.Tracef("Directory '%s' contains manifest.json\n", path)
 	_, err = os.Stat(path + "xs-app.json")
 	if err != nil {
 		return false
 	}
+	log.Tracef("Directory '%s' contains xs-app.json\n", path)
 
 	return true
 }
