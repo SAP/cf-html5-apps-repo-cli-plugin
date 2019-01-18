@@ -195,6 +195,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 	}
 
 	// Zip applications
+	tmp := os.TempDir()
 	zipFiles = make([]string, 0)
 	for _, appPath := range appPaths {
 		log.Tracef("Zipping the directory: '%s'\n", appPath)
@@ -210,12 +211,14 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 			appPathFiles = append(appPathFiles, appPath+slash+file.Name())
 		}
 
-		err = zipit(appPathFiles, appPath+".zip")
+		appPathParts := strings.Split(appPath, slash)
+		zipPath := tmp + appPathParts[len(appPathParts)-1] + ".zip"
+		err = zipit(appPathFiles, zipPath)
 		if err != nil {
-			ui.Failed("Could not zip application directory '%s' : %+v", appPath, err)
+			ui.Failed("Could not zip application directory '%s' : %+v", zipPath, err)
 			return Failure
 		}
-		zipFiles = append(zipFiles, appPath+".zip")
+		zipFiles = append(zipFiles, zipPath)
 	}
 
 	// Upload zips

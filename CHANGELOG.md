@@ -17,8 +17,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Copyright in `NOTICE` file
 - Change log in `CANGELOG.md` file
 
+### Changed
+- During `html5-push` files are created in system temp folder instead of current working directory ([#2](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/2))
+
 ### Fixed
-- Check that directories are apps before trying to upload them with `html5-push` without arguments (#1)
+- Check that directories are apps before trying to upload them with `html5-push` without arguments ([#1](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/1))
 
 ## [1.0.0] - 2018-07-26
 ### Added
