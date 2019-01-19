@@ -5,6 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
+	"fmt"
 	"strconv"
 
 	"strings"
@@ -493,11 +494,11 @@ func indexOfString(collection []string, value string) int {
 func getReadableSize(size int) string {
 	unit := " bytes"
 	if size > 1024*1024*1024 {
-		return strconv.Itoa(size/(1024*1024*1024)) + " GB"
+		return fmt.Sprintf("%.2f GB", float64(size)/float64(1024*1024*1024))
 	} else if size > 1024*1024 {
-		return strconv.Itoa(size/(1024*1024)) + " MB"
+		return fmt.Sprintf("%.2f MB", float64(size)/float64(1024*1024))
 	} else if size > 1024 {
-		return strconv.Itoa(size/1024) + " KB"
+		return fmt.Sprintf("%.2f KB", float64(size)/float64(1024))
 	}
 	return strconv.Itoa(size) + unit
 }
