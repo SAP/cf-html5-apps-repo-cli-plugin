@@ -363,11 +363,11 @@ func zipit(sources []string, target string) error {
 			}
 
 			if baseDir != "" {
-				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+				header.Name = strings.Replace(filepath.Join(baseDir, strings.TrimPrefix(path, source)), "\\", "/", -1)
 			}
 
 			if info.IsDir() {
-				header.Name += slash
+				header.Name += "/"
 			} else {
 				header.Method = zip.Deflate
 			}
