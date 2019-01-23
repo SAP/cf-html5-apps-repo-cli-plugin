@@ -86,7 +86,7 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 
 	// Get application files or single file
 	if len(argsMap["_"]) == 1 || len(argsMap["_"]) == 2 {
-		var parts = strings.Split(argsMap["_"][0], slash)
+		var parts = strings.Split(argsMap["_"][0], "/")
 		if len(parts) == 1 {
 			// Get application
 			var appKeyParts = strings.Split(argsMap["_"][0], "-")
@@ -195,7 +195,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 			return Failure
 		}
 		// File path
-		filePath := cwd + file.FilePath
+		filePath := cwd + strings.Replace(file.FilePath, "/", slash, -1)
 		// Directory path
 		dirPath := strings.Split(filePath, slash)
 		dirPath = dirPath[:len(dirPath)-1]
@@ -414,7 +414,7 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 			return Failure
 		}
 		// File path
-		filePath := cwd + file.FilePath
+		filePath := cwd + strings.Replace(file.FilePath, "/", slash, -1)
 		// Directory path
 		dirPath := strings.Split(filePath, slash)
 		dirPath = dirPath[:len(dirPath)-1]
