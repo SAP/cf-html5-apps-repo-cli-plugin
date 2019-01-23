@@ -119,7 +119,7 @@
         <code class="shell">mkdir myapp
 cd myapp
 echo '{"sap.app":{"id":"myapp","applicationVersion":{"version": "1.0.0"}}}' > manifest.json
-echo '{"routes":[{"source":"^/(.*)","target": "$1","service":"html5-apps-repo-rt"}]}' > xs-app.json
+echo '{"routes":[{"source":"^(.*)","target": "$1","service":"html5-apps-repo-rt"}]}' > xs-app.json
 cf html5-push</code>
         <p>Discover which HTML5 applications and versions are there and which service instances are not in a use</p>
         <code class="shell">cf html5-list</code>
