@@ -29,7 +29,7 @@ example, on OSX you can do it as follows (Windows users, add `.exe` at the
 end of the same command):
 
 ```bash
-cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.0.0/cf-html5-apps-repo-cli-plugin
+cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.1.0/cf-html5-apps-repo-cli-plugin
 ```
 
 Otherwise, you can build from source code:
@@ -42,6 +42,16 @@ Otherwise, you can build from source code:
   * On Unix-like systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
   * On Windows systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin.exe`
 
+## Upgrade
+
+To upgrade version of HTML5 Applications Repository CLI Plugin, you will need to uninstall previous version with command:
+
+```bash
+cf uninstall-plugin html5-plugin
+```
+
+and then install new version as described in Installation section.
+
 ## Usage
 
 The HTML5 Applications Repository CLI Plugin supports the following commands:
@@ -53,17 +63,19 @@ NAME:
    html5-list - Display list of HTML5 applications or file paths of specified application
 
 USAGE:
-   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID] [-a CF_APP_NAME]
+   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID] [-a CF_APP_NAME [-u]]
 
 OPTIONS:
-   -APP_VERSION       Application version, which file paths should be listed.
-                      If not provided, current active version will be used
-   --app, -a          Cloud Foundry application name, which is bound to
-                      services that expose UI via html5-apps-repo
-   -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
-                      contains application with specified name and version
    -APP_NAME          Application name, which file paths should be listed.
                       If not provided, list of applications will be printed
+   -APP_VERSION       Application version, which file paths should be listed.
+                      If not provided, current active version will be used
+   -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
+                      contains application with specified name and version
+   --app, -a          Cloud Foundry application name, which is bound to
+                      services that expose UI via html5-apps-repo
+   --url, -u          Show conventional URLs of applications, when accessed 
+                      via Cloud Foundry application specified with --app flag                   
 ```
 
 #### html5-get
@@ -104,6 +116,34 @@ OPTIONS:
                              version
    -PATH_TO_APP_FOLDER       One or multiple paths to folders containing
                              manifest.json and xs-app.json files
+```
+
+#### html5-delete (since v1.1.0)
+
+```
+NAME:
+   html5-delete - Delete one or multiple app-host service instances or content 
+                  uploaded with these instances
+
+USAGE:
+   cf html5-delete [--content] APP_HOST_ID [...]
+
+OPTIONS:
+   --content                  delete content only
+   -APP_HOST_ID               GUID of html5-apps-repo app-host service instance
+```
+
+#### html5-info (since v1.1.0)
+
+```
+NAME:
+   html5-info - Get size limit and status of app-host service instances
+
+USAGE:
+   cf html5-info APP_HOST_ID [...]
+
+OPTIONS:
+   -APP_HOST_ID       GUID of html5-apps-repo app-host service instance
 ```
 
 ## Configuration

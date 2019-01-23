@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.0] - 2019-01-23
 ### Added
 - Support of `--url` flag for `html5-list` command
 - Support of `html5-info` command
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - During `html5-push` files are created in system temp folder instead of current working directory ([#2](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/2))
 
 ### Fixed
+- Normalize paths to files for Windows, replace `\` to `/` in file keys ([#3](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/3))
 - Check that directories are apps before trying to upload them with `html5-push` without arguments ([#1](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/1))
 
 ## [1.0.0] - 2018-07-26
