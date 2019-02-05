@@ -227,6 +227,9 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 
 	// Zip applications
 	tmp := os.TempDir()
+	if strings.LastIndex(tmp, slash) != len(tmp)-1 {
+		tmp = tmp + slash
+	}
 	zipFiles = make([]string, 0)
 	for _, appPath := range dirs {
 		log.Tracef("Zipping the directory: '%s'\n", appPath)

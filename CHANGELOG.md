@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Address the case, where `$TMPDIR` is not set on OS ([#4](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/4))
+
 ## [1.1.0] - 2019-01-23
 ### Added
 - Support of `--url` flag for `html5-list` command
