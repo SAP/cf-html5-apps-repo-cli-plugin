@@ -140,10 +140,11 @@ NAME:
    html5-info - Get size limit and status of app-host service instances
 
 USAGE:
-   cf html5-info APP_HOST_ID [...]
+   cf html5-info [APP_HOST_ID|APP_HOST_NAME ...]
 
 OPTIONS:
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance
+   -APP_HOST_NAME     Name of html5-apps-repo app-host service instance
 ```
 
 ## Configuration

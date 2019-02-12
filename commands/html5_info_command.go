@@ -24,9 +24,10 @@ func (c *InfoCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-info",
 		HelpText: "Get size limit and status of app-host service instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-info APP_HOST_ID [...]",
+			Usage: "cf html5-info [APP_HOST_ID|APP_HOST_NAME ...]",
 			Options: map[string]string{
 				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance",
+				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance",
 			},
 		},
 	}
