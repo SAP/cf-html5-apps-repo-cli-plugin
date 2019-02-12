@@ -19,7 +19,7 @@ It allows to:
 ## Prerequisites
 
 - [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI (≥6.36.1)
-- [Download](https://golang.org/dl/) and install GO (≥1.9.2)
+- [Download](https://golang.org/dl/) and install GO (≥1.11.4)
 
 ## Installation
 
@@ -29,7 +29,7 @@ example, on OSX you can do it as follows (Windows users, add `.exe` at the
 end of the same command):
 
 ```bash
-cf install-plugin https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/download/v1.1.0/cf-html5-apps-repo-cli-plugin
+cf install-plugin -r CF-Community "html5-plugin"
 ```
 
 Otherwise, you can build from source code:
