@@ -23,10 +23,8 @@ It allows to:
 
 ## Installation
 
-If you want to __use__ latest released version and not intend to modify it, 
-you can install plugin directly from GitHub releses of this repository. For
-example, on OSX you can do it as follows (Windows users, add `.exe` at the 
-end of the same command):
+If you want to __use__ latest released version and not intend to modify it, you
+can install plugin directly from [Cloud Foundry Community](https://plugins.cloudfoundry.org/#html5-plugin) plugins repository:
 
 ```bash
 cf install-plugin -r CF-Community "html5-plugin"
