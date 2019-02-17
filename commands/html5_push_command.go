@@ -32,9 +32,11 @@ func (c *PushCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-push",
 		HelpText: "Push HTML5 applications to html5-apps-repo service",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-push [-r] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
+			Usage: "cf html5-push [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
 			Options: map[string]string{
+				"-name,-n":           "Use app-host service instance with specified name",
 				"-redeploy,-r":       "Redeploy HTML5 applications. All applications should be previously deployed to same service instance",
+				"APP_HOST_NAME":      "Name of app-host service instance to which applications should be deployed",
 				"PATH_TO_APP_FOLDER": "One or multiple paths to folders containing manifest.json and xs-app.json files",
 				"APP_HOST_ID":        "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
 			},
@@ -50,10 +52,18 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 	flagSet := flag.NewFlagSet("html5-push", flag.ContinueOnError)
 	redeployFlag := flagSet.Bool("redeploy", false, "redeploy HTML5 applications")
 	redeployFlagAlias := flagSet.Bool("r", false, "redeploy HTML5 applications")
+	nameFlag := flagSet.String("name", "", "app-host service instance name")
+	nameFlagAlias := flagSet.String("n", "", "app-host service instance name")
 	flagSet.Parse(args)
 
 	// Normalize arguments and aliases
 	redeploy := *redeployFlag || *redeployFlagAlias
+	log.Tracef("Redeploy flag: %v\n", redeploy)
+	serviceName := *nameFlagAlias
+	if *nameFlag != "" {
+		serviceName = *nameFlag
+	}
+	log.Tracef("Service name: %v\n", serviceName)
 
 	// Get current working directory
 	cwd, err := os.Getwd()
@@ -62,7 +72,9 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 		return Failure
 	}
 
-	if flagSet.NArg() == 0 {
+	// No arguments passed
+	if len(args) == 0 {
+		log.Tracef("No arguments passed. Looking for application directories\n")
 		dirs, err := findAppDirectories(cwd)
 		if err != nil {
 			ui.Failed("%+v", err)
@@ -72,12 +84,65 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 	}
 
 	// Check if passed argument is app-host-id or application
-	log.Tracef("Checking if '%s' is an app-host-id\n", args[len(args)-1])
-	match, err := regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", args[len(args)-1])
-	if err != nil {
-		ui.Failed("Regular expression check failed: %+v", err)
+	match := false
+	if flagSet.NArg() > 0 {
+		log.Tracef("Checking if '%s' is an app-host-id\n", args[len(args)-1])
+		match, err = regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", args[len(args)-1])
+		if err != nil {
+			ui.Failed("Regular expression check failed: %+v", err)
+			return Failure
+		}
+	}
+
+	// Validate that app-host-id and app-host name are not passed together
+	if match && serviceName != "" {
+		ui.Failed("Name of app-host and app-host-id arguments are mutually exclusive. Please use one of them and remove another.")
 		return Failure
 	}
+
+	// Validate that app-host-id and redeploy are not passed together
+	if match && redeploy {
+		ui.Failed("Redeploy flag and app-host-id argument are mutually exclusive. Please use one of them and remove another.")
+		return Failure
+	}
+
+	// Validate that redeploy and app-host name are not passed together
+	if redeploy && serviceName != "" {
+		ui.Failed("Redeploy flag and app-host name argument are mutually exclusive. Please use one of them and remove another.")
+		return Failure
+	}
+
+	// Service instance name is passed
+	if serviceName != "" {
+		// Get context
+		log.Tracef("Getting context (org/space/username)\n")
+		context, err := c.GetContext()
+		if err != nil {
+			ui.Failed("Could not get org and space: %s", err.Error())
+			return Failure
+		}
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", serviceName)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, serviceName)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		if flagSet.NArg() == 0 {
+			// Only app-host name is provided
+			dirs, err := findAppDirectories(cwd)
+			if err != nil {
+				ui.Failed("%+v", err)
+				return Failure
+			}
+			return c.PushHTML5Applications(dirs, serviceInstance.GUID, redeploy)
+		}
+		// Both application paths and app-host name are provided
+		return c.PushHTML5Applications(flagSet.Args(), serviceInstance.GUID, redeploy)
+	}
+
+	// Last argument is app-host-id
 	if match {
 		log.Tracef("Last argument '%s' is an app-host-id\n", args[len(args)-1])
 		// Last argument is app-host-id
@@ -92,6 +157,16 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 		}
 		// Both application paths and app-host-id are provided
 		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy)
+	}
+
+	// No app directories passed
+	if flagSet.NArg() == 0 {
+		dirs, err := findAppDirectories(cwd)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		return c.PushHTML5Applications(dirs, "", redeploy)
 	}
 
 	// Last argument is application name
@@ -121,12 +196,6 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 			terminal.EntityNameColor(context.Org),
 			terminal.EntityNameColor(context.Space),
 			terminal.EntityNameColor(context.Username))
-	}
-
-	// Fail if both redeploy and app-host-id are provided
-	if appHostGUID != "" && redeploy {
-		ui.Failed("Redeploy flag and app-host-id argument are mutually exclusive. Please use one of them and remove another.")
-		return Failure
 	}
 
 	// Check appPaths are application directories
@@ -243,7 +312,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 				for _, app := range applications {
 					if app.ApplicationName == appName {
 						log.Tracef("Service instance containing application '%s' found (%+v).\n", appName, serviceInstance)
-						if appHostGUID != "" {
+						if appHostGUID != "" && appHostGUID != serviceInstance.GUID {
 							ui.Failed("Can't redeploy applications that were previously deployed using different app-host service instances. "+
 								"HTML5 application '%s' belongs to app-host '%s' and '%s' belongs to app-host '%s'\n",
 								appNames[0], appHostGUID, appName, serviceInstance.GUID)

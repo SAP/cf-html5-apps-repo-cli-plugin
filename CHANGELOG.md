@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Support of `--name` flag for `html5-push` ([#5](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/5))
+- Support of `--redeploy` flag for `html5-push` ([#5](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/5))
+- Print detailed error messages in case of client errors in `html5-push` (size exceeded, app already exists)
+
 ### Changed
 - Change `html5-info` to show service name in first column
 - Change `html5-info` to show info about all service instances, if no arguments passed
