@@ -6,7 +6,9 @@ import (
 	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
+	"encoding/json"
 	"errors"
+	"flag"
 	"io"
 	"io/ioutil"
 	"os"
@@ -30,8 +32,9 @@ func (c *PushCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-push",
 		HelpText: "Push HTML5 applications to html5-apps-repo service",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-push [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
+			Usage: "cf html5-push [-r] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
 			Options: map[string]string{
+				"-redeploy,-r":       "Redeploy HTML5 applications. All applications should be previously deployed to same service instance",
 				"PATH_TO_APP_FOLDER": "One or multiple paths to folders containing manifest.json and xs-app.json files",
 				"APP_HOST_ID":        "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
 			},
@@ -44,20 +47,13 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 	log.Tracef("Executing command '%s': args: '%v'\n", c.Name, args)
 
 	// Parse arguments
-	var key = "_"
-	var argsMap = make(map[string][]string)
-	argsMap["_"] = make([]string, 0)
-	for _, arg := range args {
-		if string(arg[0]) == "-" {
-			key = arg
-			continue
-		}
-		if argsMap[key] == nil {
-			argsMap[key] = make([]string, 0)
-		}
-		argsMap[key] = append(argsMap[key], arg)
-		key = "_"
-	}
+	flagSet := flag.NewFlagSet("html5-push", flag.ContinueOnError)
+	redeployFlag := flagSet.Bool("redeploy", false, "redeploy HTML5 applications")
+	redeployFlagAlias := flagSet.Bool("r", false, "redeploy HTML5 applications")
+	flagSet.Parse(args)
+
+	// Normalize arguments and aliases
+	redeploy := *redeployFlag || *redeployFlagAlias
 
 	// Get current working directory
 	cwd, err := os.Getwd()
@@ -66,45 +62,44 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 		return Failure
 	}
 
-	var argsLength = len(argsMap["_"])
-	if argsLength == 0 {
+	if flagSet.NArg() == 0 {
 		dirs, err := findAppDirectories(cwd)
 		if err != nil {
 			ui.Failed("%+v", err)
 			return Failure
 		}
-		return c.PushHTML5Applications(dirs, "")
+		return c.PushHTML5Applications(dirs, "", redeploy)
 	}
 
 	// Check if passed argument is app-host-id or application
-	log.Tracef("Checking if '%s' is an app-host-id\n", argsMap["_"][argsLength-1])
-	match, err := regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", argsMap["_"][argsLength-1])
+	log.Tracef("Checking if '%s' is an app-host-id\n", args[len(args)-1])
+	match, err := regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", args[len(args)-1])
 	if err != nil {
 		ui.Failed("Regular expression check failed: %+v", err)
 		return Failure
 	}
 	if match {
-		log.Tracef("Last argument '%s' is an app-host-id\n", argsMap["_"][argsLength-1])
+		log.Tracef("Last argument '%s' is an app-host-id\n", args[len(args)-1])
 		// Last argument is app-host-id
-		if len(argsMap["_"]) == 1 {
+		if flagSet.NArg() == 1 {
 			// Only app-host-id is provided
 			dirs, err := findAppDirectories(cwd)
 			if err != nil {
 				ui.Failed("%+v", err)
 				return Failure
 			}
-			return c.PushHTML5Applications(dirs, argsMap["_"][0])
+			return c.PushHTML5Applications(dirs, flagSet.Args()[0], redeploy)
 		}
 		// Both application paths and app-host-id are provided
-		return c.PushHTML5Applications(argsMap["_"][:argsLength-1], argsMap["_"][argsLength-1])
+		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy)
 	}
 
 	// Last argument is application name
-	return c.PushHTML5Applications(argsMap["_"], "")
+	return c.PushHTML5Applications(flagSet.Args(), "", redeploy)
 }
 
 // PushHTML5Applications push HTML5 applications to app-host-id
-func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string) ExecutionStatus {
+func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string, redeploy bool) ExecutionStatus {
 	var err error
 	var zipFiles []string
 
@@ -116,10 +111,23 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		return Failure
 	}
 
-	ui.Say("Pushing HTML5 applications in org %s / space %s as %s...",
-		terminal.EntityNameColor(context.Org),
-		terminal.EntityNameColor(context.Space),
-		terminal.EntityNameColor(context.Username))
+	if redeploy || appHostGUID != "" {
+		ui.Say("Redeploying HTML5 applications in org %s / space %s as %s...",
+			terminal.EntityNameColor(context.Org),
+			terminal.EntityNameColor(context.Space),
+			terminal.EntityNameColor(context.Username))
+	} else {
+		ui.Say("Pushing HTML5 applications in org %s / space %s as %s...",
+			terminal.EntityNameColor(context.Org),
+			terminal.EntityNameColor(context.Space),
+			terminal.EntityNameColor(context.Username))
+	}
+
+	// Fail if both redeploy and app-host-id are provided
+	if appHostGUID != "" && redeploy {
+		ui.Failed("Redeploy flag and app-host-id argument are mutually exclusive. Please use one of them and remove another.")
+		return Failure
+	}
 
 	// Check appPaths are application directories
 	dirs := make([]string, 0)
@@ -138,8 +146,132 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		return Failure
 	}
 
-	// Create new app-host if needed
-	if appHostGUID == "" {
+	// Find existing app-host
+	if appHostGUID == "" && redeploy {
+
+		// Collect application names
+		appNames := make([]string, 0)
+		for _, dir := range dirs {
+			// Get HTML5 application manifest
+			fileName := dir + slash + "manifest.json"
+			log.Tracef("Reading %s\n", fileName)
+			file, err := os.Open(fileName)
+			if err != nil {
+				ui.Failed(err.Error())
+				return Failure
+			}
+			fileContents, err := ioutil.ReadAll(file)
+			if err != nil {
+				ui.Failed(err.Error())
+				return Failure
+			}
+			file.Close()
+
+			// Read application name from manifest
+			log.Tracef("Extracting application name from: %s\n", string(fileContents))
+			var manifest models.HTML5Manifest
+			err = json.Unmarshal(fileContents, &manifest)
+			if err != nil {
+				ui.Failed("Failed to parse manifest.json: %+v", err)
+				return Failure
+			}
+			if manifest.SapApp.ID == "" {
+				ui.Failed("Manifest file %s does not define application name (sap.app/id)", fileName)
+				return Failure
+			}
+
+			// Normalize application name
+			appName := strings.Replace(manifest.SapApp.ID, ".", "", -1)
+			appName = strings.Replace(appName, "-", "", -1)
+			if appName == "" {
+				ui.Failed("Manifest file %s defined invalid application name (sap.app/id = '%s')", fileName, manifest.SapApp.ID)
+				return Failure
+			}
+			appNames = append(appNames, appName)
+		}
+
+		// Get HTML5 context
+		html5Context, err := c.GetHTML5Context(context)
+		if err != nil {
+			ui.Failed(err.Error())
+			return Failure
+		}
+
+		// Find app-host service plan
+		log.Tracef("Looking for app-host service plan\n")
+		var appHostServicePlan *models.CFServicePlan
+		for _, plan := range html5Context.HTML5AppsRepoServicePlans {
+			if plan.Name == "app-host" {
+				appHostServicePlan = &plan
+				break
+			}
+		}
+		if appHostServicePlan == nil {
+			ui.Failed("Could not find app-host service plan")
+			return Failure
+		}
+
+		// Get list of service instances of app-host plan
+		log.Tracef("Getting service instances of %s service app-host plan (%+v)\n", html5Context.ServiceName, appHostServicePlan)
+		var appHostServiceInstances []models.CFServiceInstance
+		appHostServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*appHostServicePlan})
+		if err != nil {
+			ui.Failed("Could not get service instances for app-host plan: %+v", err)
+			return Failure
+		}
+
+		appHostApplicationsMap := make(map[models.CFServiceInstance]models.HTML5ListApplicationsResponse)
+		for _, appName := range appNames {
+		ServiceInstanceLoop:
+			// Look for application name in each app-host service instance
+			for _, serviceInstance := range appHostServiceInstances {
+				var applications models.HTML5ListApplicationsResponse
+				var ok bool
+				// Fetch list of app-host applications, if they are not already in cache
+				if applications, ok = appHostApplicationsMap[serviceInstance]; !ok {
+					log.Tracef("Getting list of applications for app-host plan (%+v)\n", serviceInstance)
+					applications, err = clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, serviceInstance.GUID)
+					if err != nil {
+						ui.Failed("Could not get list of applications for app-host instance %s: %+v", serviceInstance.Name, err)
+						return Failure
+					}
+					// Store in cache
+					appHostApplicationsMap[serviceInstance] = applications
+					log.Tracef("List of '%s' service instance applications: %+v\n", serviceInstance.Name, applications)
+				}
+				for _, app := range applications {
+					if app.ApplicationName == appName {
+						log.Tracef("Service instance containing application '%s' found (%+v).\n", appName, serviceInstance)
+						if appHostGUID != "" {
+							ui.Failed("Can't redeploy applications that were previously deployed using different app-host service instances. "+
+								"HTML5 application '%s' belongs to app-host '%s' and '%s' belongs to app-host '%s'\n",
+								appNames[0], appHostGUID, appName, serviceInstance.GUID)
+							return Failure
+						}
+						appHostGUID = serviceInstance.GUID
+						break ServiceInstanceLoop
+					}
+				}
+			}
+		}
+
+		// Clean-up HTML5 context
+		err = c.CleanHTML5Context(html5Context)
+		if err != nil {
+			ui.Failed(err.Error())
+			return Failure
+		}
+
+		// Service instance containing application not found
+		if appHostGUID == "" {
+			ui.Failed("Can't redeploy applications %+v. Applications were not deployed using one of existing service instances", appNames)
+			return Failure
+		}
+	}
+
+	// Create new app-host
+	if appHostGUID == "" && !redeploy {
 
 		// Get name of html5-apps-repo service
 		serviceName := os.Getenv("HTML5_SERVICE_NAME")
