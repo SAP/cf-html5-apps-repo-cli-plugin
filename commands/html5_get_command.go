@@ -27,7 +27,7 @@ func (c *GetCommand) GetPluginCommand() plugin.Command {
 		UsageDetails: plugin.Usage{
 			Usage: "cf html5-get PATH|APPKEY|--all [APP_HOST_ID] [--out OUTPUT]",
 			Options: map[string]string{
-				"PATH":        "Application file path, starting from " + slash + "<appName-appVersion>",
+				"PATH":        "Application file path, starting from /<appName-appVersion>",
 				"APPKEY":      "Application name and version",
 				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
 				"-all":        "Flag that indicates that all applications of specified APP_HOST_ID should be fetched",
@@ -107,6 +107,9 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) ExecutionStatus {
 	log.Tracef("Get content of files of applications of app-host-id: '%s'\n", appHostGUID)
 
+	// Channel to control number of concurrent connections
+	rateLimiter := make(chan int, maxConcurrentConnections)
+
 	// Get context
 	log.Tracef("Getting context (org/space/username)\n")
 	context, err := c.GetContext()
@@ -160,31 +163,37 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 	for _, application := range applications {
 		var appKey = application.ApplicationName + "-" + application.ApplicationVersion
 		// Get list of files for app-host-id and app key
-		log.Tracef("Getting list of files for application %s\n", appKey)
+		log.Tracef("Getting list of files for application '%s'\n", appKey)
 		files, err := clients.ListFilesOfApp(
 			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 			appKey,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 			appHostGUID)
 		if err != nil {
-			ui.Failed("Could not list of files for app-host-id %s: %+v", appHostGUID, err)
+			ui.Failed("Could not list of files for app-host-id '%s': %+v", appHostGUID, err)
 			return Failure
 		}
+		log.Tracef("Number of files for application '%s': %d\n", appKey, len(files))
 		allFiles = append(allFiles, files...)
 	}
 
 	// Get files
 	filesChannels := make([]chan models.HTML5ApplicationFileContent, len(allFiles))
 	for idx, file := range allFiles {
+		rateLimiter <- 1
 		log.Tracef("Getting content of file %s\n", file.FilePath)
-		filesChannel := make(chan models.HTML5ApplicationFileContent)
+		filesChannel := make(chan models.HTML5ApplicationFileContent, 1)
 		filesChannels[idx] = filesChannel
-		go clients.GetFileContent(
-			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-			file.FilePath,
-			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostGUID,
-			filesChannel)
+		go func(file models.HTML5ApplicationFile, idx int) {
+			clients.GetFileContent(
+				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				file.FilePath,
+				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
+				appHostGUID,
+				filesChannel)
+			log.Tracef("Recieved content of file %s\n", file.FilePath)
+			<-rateLimiter
+		}(file, idx)
 	}
 
 	// Save files

@@ -6,7 +6,11 @@ import (
 
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin"
-	"github.com/cloudfoundry/cli/plugin/models"
+	plugin_models "github.com/cloudfoundry/cli/plugin/models"
+)
+
+const (
+	maxConcurrentConnections = 50
 )
 
 // BaseCommand base command for all commands

@@ -6,6 +6,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
 	"flag"
+	"regexp"
 	"strings"
 
 	"github.com/cloudfoundry/cli/cf/terminal"
@@ -26,7 +27,7 @@ func (c *InfoCommand) GetPluginCommand() plugin.Command {
 		UsageDetails: plugin.Usage{
 			Usage: "cf html5-info [APP_HOST_ID|APP_HOST_NAME ...]",
 			Options: map[string]string{
-				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance",
+				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance",
 				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance",
 			},
 		},
@@ -48,6 +49,9 @@ func (c *InfoCommand) Execute(args []string) ExecutionStatus {
 func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 	log.Tracef("Getting information about service instances with app-host-ids: %v\n", appHostGUIDs)
 	var err error
+
+	// Channel to control number of concurrent connections
+	rateLimiter := make(chan int, maxConcurrentConnections)
 
 	// Get context
 	log.Tracef("Getting context (org/space/username)\n")
@@ -122,11 +126,24 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 			}
 			nameMap[serviceInstance.GUID] = serviceInstance.Name
 		}
+		// Check that appHostGUIDs are GUIDs
+		match := false
+		for _, appHostGUID := range appHostGUIDs {
+			match, err = regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", appHostGUID)
+			if err != nil {
+				ui.Failed("Regular expression check failed: %+v", err)
+				return Failure
+			}
+			if !match {
+				ui.Failed("Argument '%s' is neither existing service instance name, nor app-host-id", appHostGUID)
+				return Failure
+			}
+		}
 		log.Tracef("appHostGUIDs after normalization %+v\n", appHostGUIDs)
 	}
 
 	sizeMap := make(map[string]int)
-	infoChans := make(map[string]chan models.HTML5ServiceMeta)
+	infoMap := make(map[string]models.HTML5ServiceMeta)
 	for _, appHostGUID := range appHostGUIDs {
 		sizeMap[appHostGUID] = 0
 
@@ -150,41 +167,57 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 		// Get app-host service info
 		log.Tracef("Getting information about service with app-host-id '%s'\n", appHostGUID)
 		infoChan := make(chan models.HTML5ServiceMeta)
-		infoChans[appHostGUID] = infoChan
 		go clients.GetServiceMeta(*serviceKey.Credentials.URI, token, infoChan)
+		info := <-infoChan
+		infoMap[appHostGUID] = info
 
-		// Get list of app-host applications
-		apps, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-			html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
-		if err != nil {
-			ui.Failed("Could not get list of applications for app-host-id '%s': %+v", appHostGUID, err)
-			return Failure
-		}
+		// Check if app-host has size metadata
+		if info.Size > 0 {
+			log.Tracef("Service instance '%s' contains size metadata: %d\n", appHostGUID, info.Size)
+			sizeMap[appHostGUID] = info.Size
+		} else {
+			// Fallback to sum of HEAD sizes of all files
+			log.Tracef("Service instance '%s' does no contains size metadata\n", appHostGUID)
 
-		for _, app := range apps {
-			// Get list of application files
-			files, err := clients.ListFilesOfApp(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-				app.ApplicationName+"-"+app.ApplicationVersion,
+			// Get list of app-host applications
+			apps, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 				html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 			if err != nil {
-				ui.Failed("Could not get list of application files for app-host-id '%s' and application '%s': %+v", appHostGUID,
-					app.ApplicationName+"-"+app.ApplicationVersion, err)
+				ui.Failed("Could not get list of applications for app-host-id '%s': %+v", appHostGUID, err)
 				return Failure
 			}
-			metaChannel := make(chan models.HTML5ApplicationFileMetadata, len(files))
-			for _, file := range files {
-				// Get file size
-				go clients.GetFileMeta(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI, file.FilePath,
-					html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID, metaChannel)
-			}
-			for range files {
-				meta := <-metaChannel
-				if meta.Error != nil {
-					ui.Failed("Could not get file metadata: %+v", err)
+
+			for _, app := range apps {
+				// Get list of application files
+				files, err := clients.ListFilesOfApp(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+					app.ApplicationName+"-"+app.ApplicationVersion,
+					html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
+				if err != nil {
+					ui.Failed("Could not get list of application files for app-host-id '%s' and application '%s': %+v", appHostGUID,
+						app.ApplicationName+"-"+app.ApplicationVersion, err)
 					return Failure
 				}
-				sizeMap[appHostGUID] += meta.FileSize
+				metaChannel := make(chan models.HTML5ApplicationFileMetadata, len(files))
+				log.Tracef("Number of files in the app '%s' is '%d'\n", app.ApplicationName, len(files))
+				for _, file := range files {
+					rateLimiter <- 1
+					// Get file size
+					go func(file models.HTML5ApplicationFile) {
+						clients.GetFileMeta(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI, file.FilePath,
+							html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID, metaChannel)
+						<-rateLimiter
+					}(file)
+				}
+				for range files {
+					meta := <-metaChannel
+					if meta.Error != nil {
+						ui.Failed("Could not get file metadata: %+v", err)
+						return Failure
+					}
+					sizeMap[appHostGUID] += meta.FileSize
+				}
 			}
+
 		}
 
 		// Delete temporarry service keys
@@ -198,8 +231,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 
 	// Extract app-host infos
 	infoRecords := make([]InfoRecord, 0)
-	for appHostGUID, infoChan := range infoChans {
-		meta := <-infoChan
+	for appHostGUID, meta := range infoMap {
 		if meta.Error != nil {
 			ui.Failed("Could not read information about service with app-host-id '%s' : %+v", appHostGUID, err)
 			return Failure
