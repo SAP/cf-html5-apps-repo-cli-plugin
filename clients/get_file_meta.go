@@ -40,6 +40,7 @@ func GetFileMeta(serviceURL string, filePath string, accessToken string, appHost
 		resultChannel <- metaData
 		return
 	}
+	defer response.Body.Close()
 
 	metaData.ETag = response.Header.Get("Etag")
 	metaData.FileSize, err = strconv.Atoi(response.Header.Get("Content-Length"))
