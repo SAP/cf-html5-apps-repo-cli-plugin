@@ -6,8 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.2.0] - 2019-02-28
+## [1.2.0] - 2019-03-01
 ### Added
+- Error handling in `html5-info` for non-existing service instance names and GUIDs
+- Rate limit for number of concurrent outgoing connections
 - Support of `--name` flag for `html5-push` ([#5](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/5))
 - Support of `--redeploy` flag for `html5-push` ([#5](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/5))
 - Print detailed error messages in case of client errors in `html5-push` (size exceeded, app already exists)
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Address the case, where `$TMPDIR` is not set on OS ([#4](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/4))
+- Fix the problem in `html-info` and `html5-get` with applications containing large amount of files (>1000) ([#7](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/7))
 
 ## [1.1.0] - 2019-01-23
 ### Added
