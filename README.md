@@ -58,6 +58,15 @@ The HTML5 Applications Repository CLI Plugin supports the following commands:
 
 #### html5-list
 
+<details><summary>History</summary>
+
+| Version  | Changes                                     |
+|----------|---------------------------------------------|
+| `v1.1.0` | The `--url` option added                    |
+| `v1.0.0` | Added in `v1.0.0`                           |
+
+</details>
+
 ```
 NAME:
    html5-list - Display list of HTML5 applications or file paths of specified application
@@ -79,6 +88,14 @@ OPTIONS:
 ```
 
 #### html5-get
+
+<details><summary>History</summary>
+
+| Version  | Changes                                     |
+|----------|---------------------------------------------|
+| `v1.0.0` | Added in `v1.0.0`                           |
+
+</details>
 
 ```
 NAME:
@@ -103,22 +120,45 @@ OPTIONS:
 
 #### html5-push
 
+<details><summary>History</summary>
+
+| Version  | Changes                                     |
+|----------|---------------------------------------------|
+| `v1.2.0` | The `--name` and `--redeploy` options added |
+| `v1.0.0` | Added in `v1.0.0`                           |
+
+</details>
+
 ```
 NAME:
    html5-push - Push HTML5 applications to html5-apps-repo service
 
 USAGE:
-   cf html5-push [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
+   cf html5-push [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
 
 OPTIONS:
-   -APP_HOST_ID              GUID of html5-apps-repo app-host service instance
+   -APP_HOST_ID              GUID of html5-apps-repo app-host service instance 
                              that contains application with specified name and
                              version
-   -PATH_TO_APP_FOLDER       One or multiple paths to folders containing
+   -APP_HOST_NAME            Name of app-host service instance to which 
+                             applications should be deployed
+   -PATH_TO_APP_FOLDER       One or multiple paths to folders containing 
                              manifest.json and xs-app.json files
+   --name,-n                 Use app-host service instance with specified name
+   --redeploy,-r             Redeploy HTML5 applications. All applications
+                             should be previously deployed to same service 
+                             instance
 ```
 
-#### html5-delete (since v1.1.0)
+#### html5-delete
+
+<details><summary>History</summary>
+
+| Version  | Changes                                     |
+|----------|---------------------------------------------|
+| `v1.1.0` | Added in `v1.1.0`                           |
+
+</details>
 
 ```
 NAME:
@@ -133,7 +173,15 @@ OPTIONS:
    -APP_HOST_ID               GUID of html5-apps-repo app-host service instance
 ```
 
-#### html5-info (since v1.1.0)
+#### html5-info
+
+<details><summary>History</summary>
+
+| Version  | Changes                                     |
+|----------|---------------------------------------------|
+| `v1.1.0` | Added in `v1.1.0`                           |
+
+</details>
 
 ```
 NAME:
