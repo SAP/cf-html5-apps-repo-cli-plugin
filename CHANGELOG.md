@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Support of `--name` flag for `html5-list` ([#11](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/11))
+
 ## [1.2.0] - 2019-03-01
 ### Added
 - Error handling in `html5-info` for non-existing service instance names and GUIDs

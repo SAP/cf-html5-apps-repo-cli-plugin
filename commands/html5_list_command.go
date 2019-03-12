@@ -28,13 +28,15 @@ func (c *ListCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-list",
 		HelpText: "Display list of HTML5 applications or file paths of specified application",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID] [-a CF_APP_NAME [-u]]",
+			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-a CF_APP_NAME [-u]]",
 			Options: map[string]string{
-				"APP_NAME":    "Application name, which file paths should be listed. If not provided, list of applications will be printed",
-				"APP_VERSION": "Application version, which file paths should be listed. If not provided, current active version will be used",
-				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"-app, -a":    "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
-				"-url, -u":    "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag",
+				"APP_NAME":      "Application name, which file paths should be listed. If not provided, list of applications will be printed",
+				"APP_VERSION":   "Application version, which file paths should be listed. If not provided, current active version will be used",
+				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"-name, -n":     "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
+				"-app, -a":      "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
+				"-url, -u":      "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag",
 			},
 		},
 	}
@@ -62,6 +64,27 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		}
 		argsMap[key] = append(argsMap[key], arg)
 		key = "_"
+	}
+
+	// Service Name
+	var name = ""
+	if argsMap["-n"] != nil && argsMap["--name"] != nil {
+		ui.Failed("Can't use both '--name' and '-n' at the same time")
+		return Failure
+	}
+	if argsMap["-n"] != nil {
+		argsMap["--name"] = argsMap["-n"]
+	}
+	if argsMap["--name"] != nil {
+		if len(argsMap["--name"]) != 1 {
+			ui.Failed("Incorrect number of arguments for APP_HOST_NAME option (expected: 1, actual: %d). For help see [cf html5-list --help]", len(argsMap["--name"]))
+			return Failure
+		}
+		if len(argsMap["_"]) != 2 {
+			ui.Failed("HTML5 application name and version are required, when using '--name' option")
+			return Failure
+		}
+		name = argsMap["--name"][0]
 	}
 
 	// App
@@ -92,13 +115,13 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		return c.ListAppApps(app, showUrls)
 	} else if len(argsMap["_"]) == 3 {
 		// List files paths of application with version from app-host-id
-		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], argsMap["_"][2])
+		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], argsMap["_"][2], false)
 	} else if len(argsMap["_"]) == 2 {
 		// List files paths of application with version
-		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], "")
+		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], name, name != "")
 	} else if len(argsMap["_"]) == 1 {
 		// List files paths of application default version
-		return c.ListAppFiles(argsMap["_"][0], "", "")
+		return c.ListAppFiles(argsMap["_"][0], "", "", false)
 	}
 
 	ui.Failed("Too much arguments. See [cf html5-list --help] for more detals")
@@ -267,7 +290,7 @@ func (c *ListCommand) ListAppApps(appName string, showUrls bool) ExecutionStatus
 }
 
 // ListAppFiles get list of application files
-func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostID string) ExecutionStatus {
+func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNameOrID string, isName bool) ExecutionStatus {
 	log.Tracef("Listing application file paths for name '%s': version: '%s'\n", appName, appVersion)
 
 	// Calculate application key
@@ -295,6 +318,19 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostID 
 	if err != nil {
 		ui.Failed(err.Error())
 		return Failure
+	}
+
+	appHostID := appHostNameOrID
+	if isName {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostNameOrID)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostNameOrID)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostID = serviceInstance.GUID
 	}
 
 	// Find active version

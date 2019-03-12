@@ -15,7 +15,7 @@ import (
 )
 
 // Version is the version of the CLI plugin. It is injected on linking time.
-var Version = "1.2.0"
+var Version = "1.3.0"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}
