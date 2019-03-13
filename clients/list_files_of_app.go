@@ -4,6 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -40,6 +41,11 @@ func ListFilesOfApp(serviceURL string, appKey string, accessToken string, appHos
 	body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		return html5Response, err
+	}
+
+	// Check response code
+	if response.StatusCode != 200 {
+		return html5Response, fmt.Errorf(string(body))
 	}
 
 	// Parse response JSON
