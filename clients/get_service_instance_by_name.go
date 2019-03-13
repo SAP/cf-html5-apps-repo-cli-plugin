@@ -19,7 +19,7 @@ func GetServiceInstanceByName(cliConnection plugin.CliConnection, spaceGUID stri
 	var nextURL *string
 
 	serviceInstances = make([]models.CFServiceInstance, 0)
-	firstURL := "/v2/service_instances?q=name:" + serviceInstanceName + ";space_guid:" + spaceGUID
+	firstURL := "/v2/service_instances?q=name:" + serviceInstanceName + "&q=space_guid:" + spaceGUID
 	nextURL = &firstURL
 
 	for nextURL != nil {
