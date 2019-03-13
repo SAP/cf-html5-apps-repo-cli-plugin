@@ -25,13 +25,15 @@ func (c *GetCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-get",
 		HelpText: "Fetch content of single HTML5 application file by path, or whole application by name and version",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-get PATH|APPKEY|--all [APP_HOST_ID] [--out OUTPUT]",
+			Usage: "cf html5-get PATH|APPKEY|--all [APP_HOST_ID|-n APP_HOST_NAME] [--out OUTPUT]",
 			Options: map[string]string{
-				"PATH":        "Application file path, starting from /<appName-appVersion>",
-				"APPKEY":      "Application name and version",
-				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"-all":        "Flag that indicates that all applications of specified APP_HOST_ID should be fetched",
-				"-out, -o":    "Output file (for single file) or output directory (for application). By default, standard output and current working directory",
+				"PATH":          "Application file path, starting from /<appName-appVersion>",
+				"APPKEY":        "Application name and version",
+				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"-all":          "Flag that indicates that all applications of specified APP_HOST_ID or APP_HOST_NAME should be fetched",
+				"-name, -n":     "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
+				"-out, -o":      "Output file (for single file) or output directory (for application). By default, standard output and current working directory",
 			},
 		},
 	}
@@ -56,6 +58,27 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 		key = "_"
 	}
 
+	// Service Name
+	var name = ""
+	if argsMap["-n"] != nil && argsMap["--name"] != nil {
+		ui.Failed("Can't use both '--name' and '-n' at the same time")
+		return Failure
+	}
+	if argsMap["-n"] != nil {
+		argsMap["--name"] = argsMap["-n"]
+	}
+	if argsMap["--name"] != nil {
+		if len(argsMap["--name"]) != 1 {
+			ui.Failed("Incorrect number of arguments for APP_HOST_NAME option (expected: 1, actual: %d). For help see [cf html5-get --help]", len(argsMap["--name"]))
+			return Failure
+		}
+		if len(argsMap["--all"]) > 0 || len(argsMap["_"]) == 2 {
+			ui.Failed("Can't use both '--name' and APP_HOST_ID at the same time")
+			return Failure
+		}
+		name = argsMap["--name"][0]
+	}
+
 	// Output
 	var output = ""
 	if argsMap["-o"] != nil && argsMap["--out"] != nil {
@@ -73,15 +96,20 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 		output = argsMap["--out"][0]
 	}
 
-	// Get all apps in app-host-id
-	if len(argsMap["--all"]) == 1 {
-		return c.GetAppHostFilesContents(output, argsMap["--all"][0])
+	// Get all apps in app-host by name
+	if len(argsMap["--all"]) == 0 && len(argsMap["_"]) == 0 && name != "" {
+		return c.GetAppHostFilesContents(output, name, true)
 	}
 
-	// Define app-host-id
-	var appHostGUID = ""
+	// Get all apps in app-host-id
+	if len(argsMap["--all"]) == 1 {
+		return c.GetAppHostFilesContents(output, argsMap["--all"][0], false)
+	}
+
+	// Define app-host Name or GUID
+	var appHostNameOrGUID = name
 	if len(argsMap["_"]) == 2 {
-		appHostGUID = argsMap["_"][1]
+		appHostNameOrGUID = argsMap["_"][1]
 	}
 
 	// Get application files or single file
@@ -93,10 +121,10 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 			if len(appKeyParts) == 1 {
 				appKeyParts = append(appKeyParts, "")
 			}
-			return c.GetApplicationFilesContents(output, appKeyParts[0], appKeyParts[1], appHostGUID)
+			return c.GetApplicationFilesContents(output, appKeyParts[0], appKeyParts[1], appHostNameOrGUID, name != "")
 		}
 		// Get single file
-		return c.GetFileContents(output, argsMap["_"][0], appHostGUID)
+		return c.GetFileContents(output, argsMap["_"][0], appHostNameOrGUID, name != "")
 	}
 
 	ui.Failed("Incorrect number of arguments passed. See [cf html5-get --help] for more detals")
@@ -104,8 +132,8 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 }
 
 // GetAppHostFilesContents get files contents of all applications of app-host-id
-func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) ExecutionStatus {
-	log.Tracef("Get content of files of applications of app-host-id: '%s'\n", appHostGUID)
+func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID string, isName bool) ExecutionStatus {
+	log.Tracef("Get content of files of applications of app-host: '%s'\n", appHostNameOrGUID)
 
 	// Channel to control number of concurrent connections
 	rateLimiter := make(chan int, maxConcurrentConnections)
@@ -118,8 +146,8 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 		return Failure
 	}
 
-	ui.Say("Getting content of files of applications of app-host-id %s in org %s / space %s as %s...",
-		terminal.EntityNameColor(appHostGUID),
+	ui.Say("Getting content of files of applications of app-host %s in org %s / space %s as %s...",
+		terminal.EntityNameColor(appHostNameOrGUID),
 		terminal.EntityNameColor(context.Org),
 		terminal.EntityNameColor(context.Space),
 		terminal.EntityNameColor(context.Username))
@@ -129,6 +157,19 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 	if err != nil {
 		ui.Failed(err.Error())
 		return Failure
+	}
+
+	var appHostGUID = appHostNameOrGUID
+	if isName {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostNameOrGUID)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostNameOrGUID)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostGUID = serviceInstance.GUID
 	}
 
 	var cwd string
@@ -246,7 +287,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostGUID string) 
 }
 
 // GetFileContents get file contents
-func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID string) ExecutionStatus {
+func (c *GetCommand) GetFileContents(output string, filePath string, appHostNameOrGUID string, isName bool) ExecutionStatus {
 	log.Tracef("Get content of file with path: '%s'\n", filePath)
 
 	// Get context
@@ -268,6 +309,19 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID
 	if err != nil {
 		ui.Failed(err.Error())
 		return Failure
+	}
+
+	appHostGUID := appHostNameOrGUID
+	if isName {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostNameOrGUID)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostNameOrGUID)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostGUID = serviceInstance.GUID
 	}
 
 	// Get file contents
@@ -324,7 +378,7 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostGUID
 }
 
 // GetApplicationFilesContents get application files contents
-func (c *GetCommand) GetApplicationFilesContents(output string, appName string, appVersion string, appHostGUID string) ExecutionStatus {
+func (c *GetCommand) GetApplicationFilesContents(output string, appName string, appVersion string, appHostNameOrGUID string, isName bool) ExecutionStatus {
 	log.Tracef("Getting content of application with name: '%s' version: '%s'\n", appName, appVersion)
 
 	// Calculate application key
@@ -370,6 +424,19 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 				break
 			}
 		}
+	}
+
+	appHostGUID := appHostNameOrGUID
+	if isName {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostNameOrGUID)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostNameOrGUID)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostGUID = serviceInstance.GUID
 	}
 
 	// Get list of files
