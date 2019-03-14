@@ -25,8 +25,9 @@ func (c *InfoCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-info",
 		HelpText: "Get size limit and status of app-host service instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-info [APP_HOST_ID|APP_HOST_NAME ...]",
+			Usage: "cf html5-info [APP_HOST_ID|-n APP_HOST_NAME ...]",
 			Options: map[string]string{
+				"-name,-n":      "Use app-host service instance with specified name",
 				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance",
 				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance",
 			},
@@ -39,15 +40,18 @@ func (c *InfoCommand) Execute(args []string) ExecutionStatus {
 	log.Tracef("Executing command '%s': args: '%v'\n", c.Name, args)
 
 	flagSet := flag.NewFlagSet("html5-info", flag.ContinueOnError)
+	var appHostNames stringSlice
+	flagSet.Var(&appHostNames, "name", "Name of html5-apps-repo app-host service instance")
+	flagSet.Var(&appHostNames, "n", "Name of html5-apps-repo app-host service instance (alias)")
 	flagSet.Parse(args)
 
-	appHostGUIDs := args[len(args)-flagSet.NArg():]
-	return c.GetServiceInfos(appHostGUIDs)
+	appHostGUIDs := flagSet.Args()
+	return c.GetServiceInfos(appHostGUIDs, appHostNames)
 }
 
 // GetServiceInfos get html5-apps-repo service app-host plan info
-func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
-	log.Tracef("Getting information about service instances with app-host-ids: %v\n", appHostGUIDs)
+func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []string) ExecutionStatus {
+	log.Tracef("Getting information about service instances: %v and %v\n", appHostGUIDs, appHostNames)
 	var err error
 
 	// Channel to control number of concurrent connections
@@ -62,12 +66,27 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string) ExecutionStatus {
 	}
 
 	// If no app-host ID passed, get all
-	if len(appHostGUIDs) == 0 {
+	if len(appHostGUIDs) == 0 && len(appHostNames) == 0 {
 		ui.Say("Getting information about all app-host service instances in org %s / space %s as %s...",
 			terminal.EntityNameColor(context.Org),
 			terminal.EntityNameColor(context.Space),
 			terminal.EntityNameColor(context.Username))
 	} else {
+
+		if len(appHostNames) != 0 {
+			for _, appHostName := range appHostNames {
+				// Resolve app-host-id
+				log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
+				serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
+				if err != nil {
+					ui.Failed("%+v", err)
+					return Failure
+				}
+				log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+				appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
+			}
+		}
+
 		ui.Say("Getting information about app-host service instances %s in org %s / space %s as %s...",
 			terminal.EntityNameColor(strings.Join(appHostGUIDs, ", ")),
 			terminal.EntityNameColor(context.Org),
