@@ -529,11 +529,11 @@ func indexOfString(collection []string, value string) int {
 // getReadableSize gets file size in bytes and returns human-readable size in bytes/KB/MB/GB
 func getReadableSize(size int) string {
 	unit := " bytes"
-	if size > 1024*1024*1024 {
+	if size >= 1024*1024*1024 {
 		return fmt.Sprintf("%.2f GB", float64(size)/float64(1024*1024*1024))
-	} else if size > 1024*1024 {
+	} else if size >= 1024*1024 {
 		return fmt.Sprintf("%.2f MB", float64(size)/float64(1024*1024))
-	} else if size > 1024 {
+	} else if size >= 1024 {
 		return fmt.Sprintf("%.2f KB", float64(size)/float64(1024))
 	}
 	return strconv.Itoa(size) + unit
