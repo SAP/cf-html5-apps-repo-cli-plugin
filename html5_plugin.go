@@ -1,3 +1,5 @@
+// HTML5 Applications Repository CLI Plugin is a plugin for Cloud Foundry CLI tool
+// that aims to provide easy command line access to APIs exposed by HTML5 Application
 package main
 
 import (
