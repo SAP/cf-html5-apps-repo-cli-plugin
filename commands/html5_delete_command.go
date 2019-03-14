@@ -23,10 +23,12 @@ func (c *DeleteCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-delete",
 		HelpText: "Delete one or multiple app-host service instances or content uploaded with these instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-delete [--content] APP_HOST_ID [...]",
+			Usage: "cf html5-delete [--content] APP_HOST_ID|-n APP_HOST_NAME [...]",
 			Options: map[string]string{
-				"-content":    "delete content only",
-				"APP_HOST_ID": "GUID of html5-apps-repo app-host service instance",
+				"-content":      "delete content only",
+				"-name,-n":      "Use app-host service instance with specified name",
+				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance",
+				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance",
 			},
 		},
 	}
@@ -38,14 +40,17 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 
 	flagSet := flag.NewFlagSet("html5-delete", flag.ContinueOnError)
 	contentFlag := flagSet.Bool("content", false, "delete content only")
+	var appHostNames stringSlice
+	flagSet.Var(&appHostNames, "name", "Name of html5-apps-repo app-host service instance")
+	flagSet.Var(&appHostNames, "n", "Name of html5-apps-repo app-host service instance (alias)")
 	flagSet.Parse(args)
 
-	if flagSet.NArg() > 0 {
-		appHostGUIDs := args[len(args)-flagSet.NArg():]
+	if flagSet.NArg() > 0 || len(appHostNames) > 0 {
+		appHostGUIDs := flagSet.Args()
 		if *contentFlag {
-			return c.DeleteServiceInstancesContent(appHostGUIDs)
+			return c.DeleteServiceInstancesContent(appHostGUIDs, appHostNames)
 		}
-		return c.DeleteServiceInstances(appHostGUIDs)
+		return c.DeleteServiceInstances(appHostGUIDs, appHostNames)
 	}
 
 	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more detals")
@@ -53,7 +58,7 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 }
 
 // DeleteServiceInstancesContent delete service instances content by app-host-ids
-func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string) ExecutionStatus {
+func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, appHostNames []string) ExecutionStatus {
 	log.Tracef("Deleting content of service instances by app-host-ids: %v\n", appHostGUIDs)
 	var err error
 
@@ -63,6 +68,18 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string) Exe
 	if err != nil {
 		ui.Failed("Could not get org and space: %s", err.Error())
 		return Failure
+	}
+
+	for _, appHostName := range appHostNames {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
 	}
 
 	ui.Say("Deleting content of service instances with app-host-id %s in org %s / space %s as %s...",
@@ -112,7 +129,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string) Exe
 
 // DeleteServiceInstances delete service instances by app-host-ids,
 // including all dependent service keys
-func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string) ExecutionStatus {
+func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string) ExecutionStatus {
 	log.Tracef("Deleting service instances by app-host-ids: %v\n", appHostGUIDs)
 	var err error
 
@@ -122,6 +139,18 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string) ExecutionS
 	if err != nil {
 		ui.Failed("Could not get org and space: %s", err.Error())
 		return Failure
+	}
+
+	for _, appHostName := range appHostNames {
+		// Resolve app-host-id
+		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
+		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
+		if err != nil {
+			ui.Failed("%+v", err)
+			return Failure
+		}
+		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+		appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
 	}
 
 	ui.Say("Deleting service instances with app-host-id %s in org %s / space %s as %s...",
