@@ -98,6 +98,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.3.0` | The `--name` option added                   |
 | `v1.0.0` | Added in `v1.0.0`                           |
 
 </details>
@@ -108,7 +109,7 @@ NAME:
                or whole application by name and version
 
 USAGE:
-   cf html5-get PATH|APPKEY|--all [APP_HOST_ID] [--out OUTPUT]
+   cf html5-get PATH|APPKEY|--all [APP_HOST_ID|-n APP_HOST_NAME] [--out OUTPUT]
 
 OPTIONS:
    --all              Flag that indicates that all applications of specified
@@ -116,9 +117,13 @@ OPTIONS:
    --out, -o          Output file (for single file) or output directory (for
                       application). By default, standard output and current
                       working directory
+	--name, -n         Use html5-apps-repo app-host service instance name 
+                      instead of APP_HOST_ID                   
    -APPKEY            Application name and version
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
                       contains application with specified name and version
+   -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
+                      contains application with specified name and version                   
    -PATH              Application file path, starting 
                       from /<appName-appVersion>
 ```
@@ -161,6 +166,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | Added in `v1.1.0`                           |
 
 </details>
@@ -171,11 +177,13 @@ NAME:
                   uploaded with these instances
 
 USAGE:
-   cf html5-delete [--content] APP_HOST_ID [...]
+   cf html5-delete [--content] APP_HOST_ID|-n APP_HOST_NAME [...]
 
 OPTIONS:
    --content                  delete content only
+   --name,-n                  Use app-host service instance with specified name
    -APP_HOST_ID               GUID of html5-apps-repo app-host service instance
+   -APP_HOST_NAME             Name of html5-apps-repo app-host service instance
 ```
 
 #### html5-info
@@ -184,6 +192,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | Added in `v1.1.0`                           |
 
 </details>
@@ -193,9 +202,10 @@ NAME:
    html5-info - Get size limit and status of app-host service instances
 
 USAGE:
-   cf html5-info [APP_HOST_ID|APP_HOST_NAME ...]
+   cf html5-info [APP_HOST_ID|-n APP_HOST_NAME ...]
 
 OPTIONS:
+   --name,-n          Use app-host service instance with specified name
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance
    -APP_HOST_NAME     Name of html5-apps-repo app-host service instance
 ```
