@@ -5,6 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"errors"
+	"fmt"
 	"os"
 )
 
@@ -161,4 +162,15 @@ type HTML5Context struct {
 	HTML5AppRuntimeServiceInstanceKey *models.CFServiceKey
 	// Access token of html5-apps-repo app-runtime service key
 	HTML5AppRuntimeServiceInstanceKeyToken string
+}
+
+type stringSlice []string
+
+func (i *stringSlice) String() string {
+	return fmt.Sprintf("%d", *i)
+}
+
+func (i *stringSlice) Set(value string) error {
+	*i = append(*i, value)
+	return nil
 }
