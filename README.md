@@ -86,7 +86,7 @@ OPTIONS:
                       contains application with specified name and version
    -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
                       contains application with specified name and version
-	--name, -n         Use html5-apps-repo app-host service instance name 
+   --name, -n         Use html5-apps-repo app-host service instance name 
                       instead of APP_HOST_ID
    --app, -a          Cloud Foundry application name, which is bound to
                       services that expose UI via html5-apps-repo
@@ -119,7 +119,7 @@ OPTIONS:
    --out, -o          Output file (for single file) or output directory (for
                       application). By default, standard output and current
                       working directory
-	--name, -n         Use html5-apps-repo app-host service instance name 
+   --name, -n         Use html5-apps-repo app-host service instance name 
                       instead of APP_HOST_ID                   
    -APPKEY            Application name and version
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
