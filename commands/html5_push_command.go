@@ -215,49 +215,53 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		return Failure
 	}
 
+	// Collect application names
+	appNames := make([]string, 0)
+	appVersions := make([]string, 0)
+	for _, dir := range dirs {
+		// Get HTML5 application manifest
+		fileName := dir + slash + "manifest.json"
+		log.Tracef("Reading %s\n", fileName)
+		file, err := os.Open(fileName)
+		if err != nil {
+			ui.Failed(err.Error())
+			return Failure
+		}
+		fileContents, err := ioutil.ReadAll(file)
+		if err != nil {
+			ui.Failed(err.Error())
+			return Failure
+		}
+		file.Close()
+
+		// Read application name from manifest
+		log.Tracef("Extracting application name from: %s\n", string(fileContents))
+		var manifest models.HTML5Manifest
+		err = json.Unmarshal(fileContents, &manifest)
+		if err != nil {
+			ui.Failed("Failed to parse manifest.json: %+v", err)
+			return Failure
+		}
+		if manifest.SapApp.ID == "" {
+			ui.Failed("Manifest file %s does not define application name (sap.app/id)", fileName)
+			return Failure
+		}
+
+		// Normalize application name
+		appName := strings.Replace(manifest.SapApp.ID, ".", "", -1)
+		appName = strings.Replace(appName, "-", "", -1)
+		if appName == "" {
+			ui.Failed("Manifest file %s defined invalid application name (sap.app/id = '%s')", fileName, manifest.SapApp.ID)
+			return Failure
+		}
+		appNames = append(appNames, appName)
+
+		// Application version
+		appVersions = append(appVersions, manifest.SapApp.ApplicationVersion.Version)
+	}
+
 	// Find existing app-host
 	if appHostGUID == "" && redeploy {
-
-		// Collect application names
-		appNames := make([]string, 0)
-		for _, dir := range dirs {
-			// Get HTML5 application manifest
-			fileName := dir + slash + "manifest.json"
-			log.Tracef("Reading %s\n", fileName)
-			file, err := os.Open(fileName)
-			if err != nil {
-				ui.Failed(err.Error())
-				return Failure
-			}
-			fileContents, err := ioutil.ReadAll(file)
-			if err != nil {
-				ui.Failed(err.Error())
-				return Failure
-			}
-			file.Close()
-
-			// Read application name from manifest
-			log.Tracef("Extracting application name from: %s\n", string(fileContents))
-			var manifest models.HTML5Manifest
-			err = json.Unmarshal(fileContents, &manifest)
-			if err != nil {
-				ui.Failed("Failed to parse manifest.json: %+v", err)
-				return Failure
-			}
-			if manifest.SapApp.ID == "" {
-				ui.Failed("Manifest file %s does not define application name (sap.app/id)", fileName)
-				return Failure
-			}
-
-			// Normalize application name
-			appName := strings.Replace(manifest.SapApp.ID, ".", "", -1)
-			appName = strings.Replace(appName, "-", "", -1)
-			if appName == "" {
-				ui.Failed("Manifest file %s defined invalid application name (sap.app/id = '%s')", fileName, manifest.SapApp.ID)
-				return Failure
-			}
-			appNames = append(appNames, appName)
-		}
 
 		// Get HTML5 context
 		html5Context, err := c.GetHTML5Context(context)
@@ -432,7 +436,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		tmp = tmp + slash
 	}
 	zipFiles = make([]string, 0)
-	for _, appPath := range dirs {
+	for idx, appPath := range dirs {
 		log.Tracef("Zipping the directory: '%s'\n", appPath)
 
 		var appPathFiles = make([]string, 0)
@@ -446,8 +450,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 			appPathFiles = append(appPathFiles, appPath+slash+file.Name())
 		}
 
-		appPathParts := strings.Split(appPath, slash)
-		zipPath := tmp + appPathParts[len(appPathParts)-1] + ".zip"
+		zipPath := tmp + appNames[idx] + "-" + appVersions[idx] + ".zip"
 		err = zipit(appPathFiles, zipPath)
 		if err != nil {
 			ui.Failed("Could not zip application directory '%s' : %+v", zipPath, err)

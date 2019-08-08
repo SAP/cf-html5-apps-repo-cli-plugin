@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.3.0] - 2019-08-08
 ### Added
 - Support of `--name` flag for `html5-list` ([#11](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/11))
 - Support of `--name` flag for `html5-get` ([#11](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/11))
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Use correct syntax for multiple filters in Cloud Foundry API ([#12](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/12))
 - Print `1.00 MB` instead of `1024.00 KB` in `html5-info` and `html5-list` ([#13](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/13))
+- Use application name and version as `zip` file name, while pushing applications with `html5-push` ([#14](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/13))
 
 ## [1.2.0] - 2019-03-01
 ### Added
