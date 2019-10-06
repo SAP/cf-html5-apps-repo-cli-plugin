@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Error handling for service broker errors added ([#16](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/16)) 
+
 ## [1.3.0] - 2019-08-08
 ### Added
 - Support of `--name` flag for `html5-list` ([#11](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/11))

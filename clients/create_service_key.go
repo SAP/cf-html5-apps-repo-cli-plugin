@@ -4,6 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,9 @@ import (
 func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID string) (*models.CFServiceKey, error) {
 	var serviceKey *models.CFServiceKey
 	var responseObject models.CFResource
+	var errorResponseObject models.CFErrorResponse
 	var responseStrings []string
+	var responseBytes []byte
 	var err error
 	var url string
 	var body string
@@ -30,9 +33,21 @@ func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID st
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+	responseBytes = []byte(strings.Join(responseStrings, ""))
+	err = json.Unmarshal(responseBytes, &responseObject)
 	if err != nil {
 		return nil, err
+	}
+
+	if responseObject.Entity == nil {
+		err = json.Unmarshal(responseBytes, &errorResponseObject)
+		if err != nil {
+			return nil, err
+		}
+		if errorResponseObject.Description != nil {
+			return nil, errors.New("\n" + *errorResponseObject.Description)
+		}
+		return nil, errors.New(strings.Join(responseStrings, "\n"))
 	}
 	serviceKey = &models.CFServiceKey{GUID: responseObject.Metadata.GUID, Name: *responseObject.Entity.Name, Credentials: *responseObject.Entity.Credentials}
 
