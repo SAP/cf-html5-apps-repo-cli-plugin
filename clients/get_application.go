@@ -4,6 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/cloudfoundry/cli/plugin"
@@ -28,6 +29,11 @@ func GetApplication(cliConnection plugin.CliConnection, spaceGUID string, appNam
 	err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
 	if err != nil {
 		return nil, err
+	}
+	if len(responseObject.Resources) > 0 {
+		log.Tracef("Number of applications with name %s: %d\n", appName, len(responseObject.Resources))
+	} else {
+		return nil, fmt.Errorf("Application with name %s does not exist in current organization and space", appName)
 	}
 	application = &models.CFApplication{GUID: responseObject.Resources[0].Metadata.GUID, Name: *responseObject.Resources[0].Entity.Name}
 
