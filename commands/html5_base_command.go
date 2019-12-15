@@ -82,6 +82,15 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	if err != nil {
 		return html5Context, errors.New("Could not get service instances for app-runtime plan: " + err.Error())
 	}
+
+	// Filter out service instances that were recently failed to delete
+	for idx, serviceInstance := range appRuntimeServiceInstances {
+		if serviceInstance.LastOperation.Type == "delete" && serviceInstance.LastOperation.State == "failed" {
+			log.Tracef("Service instance %s is potentially broken and will not be reused\n", serviceInstance.Name)
+			appRuntimeServiceInstances[idx] = appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1]
+			appRuntimeServiceInstances = appRuntimeServiceInstances[:len(appRuntimeServiceInstances)-1]
+		}
+	}
 	html5Context.HTML5AppRuntimeServiceInstances = appRuntimeServiceInstances
 
 	// Create instance of app-runtime plan if needed
@@ -124,7 +133,7 @@ func (c *HTML5Command) CleanHTML5Context(html5Context HTML5Context) error {
 	// Delete service key
 	if html5Context.HTML5AppRuntimeServiceInstanceKey != nil {
 		log.Tracef("Deleting service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name)
-		err = clients.DeleteServiceKey(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstanceKey.GUID)
+		err = clients.DeleteServiceKey(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstanceKey.GUID, maxRetryCount)
 		if err != nil {
 			return errors.New("Could not delete service key" + html5Context.HTML5AppRuntimeServiceInstanceKey.Name + ": " + err.Error())
 		}
@@ -133,10 +142,11 @@ func (c *HTML5Command) CleanHTML5Context(html5Context HTML5Context) error {
 	// Delete instance of app-runtime if needed
 	if html5Context.HTML5AppRuntimeServiceInstance != nil {
 		log.Tracef("Deleting service instance %s\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
-		err = clients.DeleteServiceInstance(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstance.GUID)
+		err = clients.DeleteServiceInstance(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstance.GUID, maxRetryCount)
 		if err != nil {
 			return errors.New("Could not delete service instance of app-runtime plan: " + err.Error())
 		}
+		log.Tracef("Service instance %s successfully deleted\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
 	}
 
 	return nil

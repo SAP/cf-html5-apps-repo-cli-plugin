@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Retry for service instance and keys deletion added ([#21](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/21))
 - Error handling for service broker errors added ([#16](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/16)) 
 - Error handling for `html5-list -a`, when application does not exist ([#19](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/19))
+
+### Fixed
+- Report an error if `html5-delete` failed to delete service instance ([#22](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/22))
+- Report an error if cleanup was not successfull ([#23](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/23))
+- Don't reuse broken service instances ([#24](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/24))
 
 ## [1.3.0] - 2019-08-08
 ### Added

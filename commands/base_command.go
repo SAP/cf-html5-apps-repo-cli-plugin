@@ -11,6 +11,7 @@ import (
 
 const (
 	maxConcurrentConnections = 50
+	maxRetryCount            = 3
 )
 
 // BaseCommand base command for all commands

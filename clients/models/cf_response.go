@@ -45,6 +45,9 @@ type CFResourceEntity struct {
 
 	// credentials
 	Credentials *CFCredentials `json:"credentials,omitempty"`
+
+	// last operation
+	LastOperation *CFLastOperation `json:"last_operation,omitempty"`
 }
 
 // CFCredentials Cloud Foundry response resource entity credentials
@@ -62,4 +65,13 @@ type CFUAA struct {
 	ClientID     string `json:"clientid,omitempty"`
 	ClientSecret string `json:"clientsecret,omitempty"`
 	URL          string `json:"url,omitempty"`
+}
+
+// CFLastOperation Cloud Foundry last operation
+type CFLastOperation struct {
+	Type        string `json:"type,omitempty"`
+	State       string `json:"state,omitempty"`
+	Description string `json:"description,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
 }

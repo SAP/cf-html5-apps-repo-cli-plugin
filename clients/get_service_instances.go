@@ -39,7 +39,12 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 		}
 
 		for _, serviceInstance := range responseObject.Resources {
-			serviceInstances = append(serviceInstances, models.CFServiceInstance{Name: *serviceInstance.Entity.Name, GUID: serviceInstance.Metadata.GUID, UpdatedAt: serviceInstance.Metadata.UpdatedAt})
+			serviceInstances = append(serviceInstances, models.CFServiceInstance{
+				Name:          *serviceInstance.Entity.Name,
+				GUID:          serviceInstance.Metadata.GUID,
+				UpdatedAt:     serviceInstance.Metadata.UpdatedAt,
+				LastOperation: *serviceInstance.Entity.LastOperation,
+			})
 		}
 		nextURL = responseObject.NextURL
 	}

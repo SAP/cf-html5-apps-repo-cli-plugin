@@ -114,7 +114,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 
 		// Delete temporarry service keys
 		log.Tracef("Deleting temporarry service key: '%s'\n", serviceKey.Name)
-		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID)
+		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID, maxRetryCount)
 		if err != nil {
 			ui.Failed("Could not delete service key '%s' : %+v", serviceKey.Name, err)
 			return Failure
@@ -171,7 +171,7 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		// Delete dependent service keys
 		for _, serviceKey := range serviceKeys {
 			log.Tracef("Deleting service key %s (%s)\n", serviceKey.GUID, serviceKey.Name)
-			err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID)
+			err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID, maxRetryCount)
 			if err != nil {
 				ui.Failed("Could not delete service key %s: %+v", serviceKey.GUID, err)
 				return Failure
@@ -179,11 +179,12 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		}
 		log.Tracef("Deleting service instance %s\n", appHostGUID)
 		// Delete service instance
-		err = clients.DeleteServiceInstance(c.CliConnection, appHostGUID)
+		err = clients.DeleteServiceInstance(c.CliConnection, appHostGUID, maxRetryCount)
 		if err != nil {
 			ui.Failed("Could not delete service instance %s: %+v", appHostGUID, err)
 			return Failure
 		}
+		log.Tracef("Service instance %s successfully deleted\n", appHostGUID)
 	}
 
 	ui.Ok()

@@ -241,7 +241,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []stri
 
 		// Delete temporarry service keys
 		log.Tracef("Deleting temporarry service key: '%s'\n", serviceKey.Name)
-		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID)
+		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID, maxRetryCount)
 		if err != nil {
 			ui.Failed("Could not delete service key '%s' : %+v", serviceKey.Name, err)
 			return Failure
