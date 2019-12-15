@@ -7,6 +7,7 @@ about: Create a bug report to help us improve
 Describe your issue here. What is the expected behavior? What is the actual behavior?
 
 ### Environment
+*   Plugin version (e.g. 1.3.0) -
 *   OS (macOS/Windows) - 
 *   SAP CF Landscape (e.g. Canary) -
 *   IaaS provider (e.g. AWS) - 
