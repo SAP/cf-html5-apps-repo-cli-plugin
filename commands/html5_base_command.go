@@ -97,7 +97,7 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	var appRuntimeServiceInstance *models.CFServiceInstance
 	if len(appRuntimeServiceInstances) == 0 {
 		log.Tracef("Creating service instance of %s service app-runtime plan\n", serviceName)
-		appRuntimeServiceInstance, err = clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *appRuntimeServicePlan)
+		appRuntimeServiceInstance, err = clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *appRuntimeServicePlan, nil)
 		if err != nil {
 			return html5Context, errors.New("Could not create service instance of app-runtime plan: " + err.Error())
 		}
@@ -122,6 +122,13 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	}
 	html5Context.HTML5AppRuntimeServiceInstanceKeyToken = appRuntimeServiceInstanceKeyToken
 	log.Tracef("Access token for service key %s: %s\n", appRuntimeServiceInstanceKey.Name, appRuntimeServiceInstanceKeyToken)
+
+	// Runtime URL
+	runtimeURL := os.Getenv("RUNTIME_URL")
+	if runtimeURL == "" {
+		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp.cfapps.sap.hana.ondemand.com"
+	}
+	html5Context.RuntimeURL = runtimeURL
 
 	return html5Context, nil
 }
@@ -172,6 +179,8 @@ type HTML5Context struct {
 	HTML5AppRuntimeServiceInstanceKey *models.CFServiceKey
 	// Access token of html5-apps-repo app-runtime service key
 	HTML5AppRuntimeServiceInstanceKeyToken string
+	// Runtime application URL
+	RuntimeURL string
 }
 
 type stringSlice []string

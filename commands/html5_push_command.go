@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -32,8 +33,9 @@ func (c *PushCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-push",
 		HelpText: "Push HTML5 applications to html5-apps-repo service",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-push [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
+			Usage: "cf html5-push [-d] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
 			Options: map[string]string{
+				"-destination,-d":    "Create subaccount level destination with credentials to access HTML5 applications",
 				"-name,-n":           "Use app-host service instance with specified name",
 				"-redeploy,-r":       "Redeploy HTML5 applications. All applications should be previously deployed to same service instance",
 				"APP_HOST_NAME":      "Name of app-host service instance to which applications should be deployed",
@@ -50,6 +52,8 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 
 	// Parse arguments
 	flagSet := flag.NewFlagSet("html5-push", flag.ContinueOnError)
+	destinationFlag := flagSet.Bool("destination", false, "create destination to access HTML5 applications")
+	destinationFlagAlias := flagSet.Bool("d", false, "create destination to access HTML5 applications")
 	redeployFlag := flagSet.Bool("redeploy", false, "redeploy HTML5 applications")
 	redeployFlagAlias := flagSet.Bool("r", false, "redeploy HTML5 applications")
 	nameFlag := flagSet.String("name", "", "app-host service instance name")
@@ -57,6 +61,8 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 	flagSet.Parse(args)
 
 	// Normalize arguments and aliases
+	destination := *destinationFlag || *destinationFlagAlias
+	log.Tracef("Destination flag: %v\n", destination)
 	redeploy := *redeployFlag || *redeployFlagAlias
 	log.Tracef("Redeploy flag: %v\n", redeploy)
 	serviceName := *nameFlagAlias
@@ -80,7 +86,7 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 			ui.Failed("%+v", err)
 			return Failure
 		}
-		return c.PushHTML5Applications(dirs, "", redeploy)
+		return c.PushHTML5Applications(dirs, "", redeploy, destination)
 	}
 
 	// Check if passed argument is app-host-id or application
@@ -136,10 +142,10 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 				ui.Failed("%+v", err)
 				return Failure
 			}
-			return c.PushHTML5Applications(dirs, serviceInstance.GUID, redeploy)
+			return c.PushHTML5Applications(dirs, serviceInstance.GUID, redeploy, destination)
 		}
 		// Both application paths and app-host name are provided
-		return c.PushHTML5Applications(flagSet.Args(), serviceInstance.GUID, redeploy)
+		return c.PushHTML5Applications(flagSet.Args(), serviceInstance.GUID, redeploy, destination)
 	}
 
 	// Last argument is app-host-id
@@ -153,10 +159,10 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 				ui.Failed("%+v", err)
 				return Failure
 			}
-			return c.PushHTML5Applications(dirs, flagSet.Args()[0], redeploy)
+			return c.PushHTML5Applications(dirs, flagSet.Args()[0], redeploy, destination)
 		}
 		// Both application paths and app-host-id are provided
-		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy)
+		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy, destination)
 	}
 
 	// No app directories passed
@@ -166,17 +172,20 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 			ui.Failed("%+v", err)
 			return Failure
 		}
-		return c.PushHTML5Applications(dirs, "", redeploy)
+		return c.PushHTML5Applications(dirs, "", redeploy, destination)
 	}
 
 	// Last argument is application name
-	return c.PushHTML5Applications(flagSet.Args(), "", redeploy)
+	return c.PushHTML5Applications(flagSet.Args(), "", redeploy, destination)
 }
 
 // PushHTML5Applications push HTML5 applications to app-host-id
-func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string, redeploy bool) ExecutionStatus {
+func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string, redeploy bool, destination bool) ExecutionStatus {
 	var err error
 	var zipFiles []string
+	var destinationMessage = ""
+	var actionMessage = "Pushing"
+	var html5Context HTML5Context
 
 	// Get context
 	log.Tracef("Getting context (org/space/username)\n")
@@ -186,17 +195,22 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		return Failure
 	}
 
-	if redeploy || appHostGUID != "" {
-		ui.Say("Redeploying HTML5 applications in org %s / space %s as %s...",
-			terminal.EntityNameColor(context.Org),
-			terminal.EntityNameColor(context.Space),
-			terminal.EntityNameColor(context.Username))
-	} else {
-		ui.Say("Pushing HTML5 applications in org %s / space %s as %s...",
-			terminal.EntityNameColor(context.Org),
-			terminal.EntityNameColor(context.Space),
-			terminal.EntityNameColor(context.Username))
+	// Update message if destination need to be created
+	if destination {
+		destinationMessage = " and creating destination "
 	}
+
+	// Update message according to the action (deploy/redeploy)
+	if redeploy || appHostGUID != "" {
+		actionMessage = "Redeploying "
+	}
+
+	ui.Say("%s HTML5 applications%sin org %s / space %s as %s...",
+		actionMessage,
+		destinationMessage,
+		terminal.EntityNameColor(context.Org),
+		terminal.EntityNameColor(context.Space),
+		terminal.EntityNameColor(context.Username))
 
 	// Check appPaths are application directories
 	dirs := make([]string, 0)
@@ -218,6 +232,8 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 	// Collect application names
 	appNames := make([]string, 0)
 	appVersions := make([]string, 0)
+	sapCloudService := ""
+	serviceScopes := make([]string, 0)
 	for _, dir := range dirs {
 		// Get HTML5 application manifest
 		fileName := dir + slash + "manifest.json"
@@ -257,17 +273,82 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		appNames = append(appNames, appName)
 
 		// Application version
+		if manifest.SapApp.ApplicationVersion.Version == "" {
+			ui.Failed("Manifest file %s does not define application version (sap.app/applicationVersion/version)", fileName)
+			return Failure
+		}
 		appVersions = append(appVersions, manifest.SapApp.ApplicationVersion.Version)
+
+		// Business Service
+		if destination && (manifest.SapCloud.Service != "") && (sapCloudService != "") && (manifest.SapCloud.Service != sapCloudService) {
+			ui.Failed(
+				"Manifest file %s defines business service name (sap.cloud/service) '%s', which differs from '%s'. "+
+					"Deployment of multiple applications with different service names is not compatible with --destination option.",
+				fileName,
+				manifest.SapCloud.Service,
+				sapCloudService)
+			return Failure
+		}
+		sapCloudService = manifest.SapCloud.Service
+
+		// If destination need to be created, collect scopes
+		// for which role templates need to be created
+		if destination {
+			// Get HTML5 application application descriptor
+			fileName := dir + slash + "xs-app.json"
+			log.Tracef("Reading %s\n", fileName)
+			file, err := os.Open(fileName)
+			if err != nil {
+				ui.Failed(err.Error())
+				return Failure
+			}
+			fileContents, err := ioutil.ReadAll(file)
+			if err != nil {
+				ui.Failed("Failed to read application descriptor '%s': %s\n", fileName, err.Error())
+				return Failure
+			}
+			file.Close()
+
+			// Parse application descriptor
+			var applicationDescriptor models.HTML5AppDescriptor
+			err = json.Unmarshal(fileContents, &applicationDescriptor)
+			if err != nil {
+				ui.Failed("Failed to parse application descriptor '%s': %s\n", fileName, err.Error())
+				return Failure
+			}
+
+			// Check if authorization is required
+			if applicationDescriptor.IsAuthorizationRequired() {
+				appScopes := applicationDescriptor.GetAllScopes()
+				if len(appScopes) > 0 {
+					// Merge scopes
+				AppScopesLoop:
+					for _, appScope := range appScopes {
+						for _, serviceScope := range serviceScopes {
+							if serviceScope == appScope {
+								continue AppScopesLoop
+							}
+						}
+						serviceScopes = append(serviceScopes, appScope)
+					}
+				}
+				log.Tracef("Application descriptor '%s' scopes: %+v\n", fileName, appScopes)
+			} else {
+				log.Tracef("Application descriptor '%s' does not require authorization\n", fileName)
+			}
+		}
 	}
 
 	// Find existing app-host
 	if appHostGUID == "" && redeploy {
 
 		// Get HTML5 context
-		html5Context, err := c.GetHTML5Context(context)
-		if err != nil {
-			ui.Failed(err.Error())
-			return Failure
+		if html5Context.ServiceName == "" {
+			html5Context, err = c.GetHTML5Context(context)
+			if err != nil {
+				ui.Failed(err.Error())
+				return Failure
+			}
 		}
 
 		// Find app-host service plan
@@ -327,13 +408,6 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 					}
 				}
 			}
-		}
-
-		// Clean-up HTML5 context
-		err = c.CleanHTML5Context(html5Context)
-		if err != nil {
-			ui.Failed(err.Error())
-			return Failure
 		}
 
 		// Service instance containing application not found
@@ -406,7 +480,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 
 		// Create service instance
 		log.Tracef("Creating service instance for plan %+v\n", *servicePlan)
-		serviceInstance, err := clients.CreateServiceInstance(c.CliConnection, spaceGUID, *servicePlan)
+		serviceInstance, err := clients.CreateServiceInstance(c.CliConnection, spaceGUID, *servicePlan, nil)
 		if err != nil {
 			ui.Failed("Could not create service instance for %s app-host plan: %+v", serviceName, err)
 			return Failure
@@ -468,11 +542,16 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 
 	// Delete temporarry zip files
 	for _, zipFile := range zipFiles {
-		log.Tracef("Deleting temporarry zip file: '%s'\n", zipFile)
-		err = os.Remove(zipFile)
-		if err != nil {
-			ui.Failed("Could not delete zip file '%s' : %+v", zipFile, err)
-			return Failure
+		_, err = os.Stat(zipFile)
+		if err == nil {
+			log.Tracef("Deleting temporarry zip file: '%s'\n", zipFile)
+			err = os.Remove(zipFile)
+			if err != nil {
+				ui.Failed("Could not delete zip file '%s' : %+v", zipFile, err)
+				return Failure
+			}
+		} else {
+			log.Tracef("Temporarry zip file does not exist and will not be removed: '%s'\n", zipFile)
 		}
 	}
 
@@ -484,10 +563,260 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		return Failure
 	}
 
+	// Create destination configuration
+	if destination {
+		// Create xs-uaa service instance with
+		// role templates for each scope required
+		// by applications
+		securityDescriptorScopes := make([]models.UAASecurityDescriptorScope, len(serviceScopes))
+		securityDescriptorRoleTemplates := make([]models.UAASecurityDescriptorRoleTemplate, len(serviceScopes))
+		for idx, scope := range serviceScopes {
+			scopeNameWithoutPrefix := strings.Split(scope, ".")[1]
+			securityDescriptorScopes[idx] = models.UAASecurityDescriptorScope{
+				Name:        &scopeNameWithoutPrefix,
+				Description: &scope,
+			}
+			securityDescriptorRoleTemplates[idx] = models.UAASecurityDescriptorRoleTemplate{
+				Name:        &scopeNameWithoutPrefix,
+				Description: &scope,
+			}
+		}
+		// Define security descriptor
+		securityDescriptor := models.UAASecurityDescriptor{
+			XSAPPNAME:              "app-host-" + appHostGUID,
+			ForeignScopeReferences: []string{"uaa.user"},
+			Scopes:                 securityDescriptorScopes,
+			RoleTemplates:          securityDescriptorRoleTemplates,
+		}
+		var xsuaaServicePlan *models.CFServicePlan
+		// Get HTML5 context if needed
+		if html5Context.ServiceName == "" {
+			html5Context, err = c.GetHTML5Context(context)
+			if err != nil {
+				ui.Failed(err.Error())
+				return Failure
+			}
+		}
+		// Find 'application' plan of 'xsuaa' service
+		for _, service := range html5Context.Services {
+			if service.Name == "xsuaa" {
+				plans, err := clients.GetServicePlans(c.CliConnection, service.GUID)
+				if err != nil {
+					ui.Failed("Could not get 'xsuaa' service plans")
+					return Failure
+				}
+				for _, plan := range plans {
+					if plan.Name == "application" {
+						xsuaaServicePlan = &plan
+						break
+					}
+				}
+				break
+			}
+		}
+		// Validate that service plan 'application' of service 'xsuaa' was found
+		if xsuaaServicePlan == nil {
+			ui.Failed("Could not find 'xsuaa' service in the marketplace")
+			return Failure
+		}
+		// XSUAA service instance
+		securityDescriptorJSON, err := json.Marshal(securityDescriptor)
+		if err != nil {
+			ui.Failed("Could not marshal security descriptor: %+v", err)
+			return Failure
+		}
+		log.Tracef("Creating service instance of 'xsuaa' service '%s' plan with parameters: %s\n", xsuaaServicePlan.Name, string(securityDescriptorJSON))
+		xsuaaServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *xsuaaServicePlan, &securityDescriptor)
+		if err != nil {
+			ui.Failed("Could not create XSUAA service instance : %+v", err)
+			return Failure
+		}
+		// XSUAA service key
+		log.Tracef("Creating service key of 'xsuaa' service '%s' plan: %+v\n", xsuaaServicePlan.Name, xsuaaServiceInstance)
+		xsuaaServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, xsuaaServiceInstance.GUID)
+		if err != nil {
+			ui.Failed("Could not create XSUAA service key : %+v", err)
+			return Failure
+		}
+		if xsuaaServiceInstanceKey.Credentials.URI == nil {
+			xsuaaServiceInstanceKey.Credentials.URI = &html5Context.RuntimeURL
+		}
+		// Credentials for destination configuration
+		log.Tracef("XSUAA service key credentials: %+v", xsuaaServiceInstanceKey.Credentials)
+		credentials := models.CFCredentials{
+			URI:             xsuaaServiceInstanceKey.Credentials.URI,
+			UAA:             xsuaaServiceInstanceKey.Credentials.UAA,
+			SapCloudService: &sapCloudService,
+			HTML5AppsRepo: &models.HTML5AppsRepo{
+				AppHostID: appHostGUID,
+			},
+		}
+
+		// Create destination configuration
+		err = c.CreateHTML5Destination(context, html5Context, credentials)
+		if err != nil {
+			ui.Failed("Could not create destination configuration")
+			return Failure
+		}
+	}
+
+	// Clean-up HTML5 context
+	if html5Context.ServiceName != "" {
+		err = c.CleanHTML5Context(html5Context)
+		if err != nil {
+			ui.Failed(err.Error())
+			return Failure
+		}
+	}
+
 	ui.Ok()
 	ui.Say("")
 
+	// Print application URLs if needed
+	if destination {
+		sapCloudServiceName := strings.Replace(sapCloudService, ".", "", -1)
+		for idx, appName := range appNames {
+			ui.Say(html5Context.RuntimeURL + "/" + sapCloudServiceName + "." + appName + "-" + appVersions[idx] + "/")
+		}
+		ui.Say("")
+	}
+
 	return Success
+}
+
+// CreateHTML5Destination cretes destination with XSUAA credentials, "sap.cloud.service" and "app-host-id"
+func (c *PushCommand) CreateHTML5Destination(context Context, html5Context HTML5Context, credentials models.CFCredentials) error {
+	var err error
+
+	log.Tracef("Creating subaccount destination with credentials: %+v\n", credentials)
+
+	// Find destination service
+	log.Tracef("Looking for 'destination' service\n")
+	var destinationService *models.CFService
+	for _, service := range html5Context.Services {
+		if service.Name == "destination" {
+			destinationService = &service
+			break
+		}
+	}
+	if destinationService == nil {
+		return fmt.Errorf("Destination service is not in the list of available services." +
+			" Make sure your subaccount has entitlement to use it")
+	}
+	log.Tracef("Destination service found: %+v\n", destinationService)
+
+	// Find destination service "lite" plan
+	log.Tracef("Getting service plans for 'destination' service (GUID: %s)\n", destinationService.GUID)
+	var liteServicePlan *models.CFServicePlan
+	destinationServicePlans, err := clients.GetServicePlans(c.CliConnection, destinationService.GUID)
+	if err != nil {
+		return fmt.Errorf("Could not get service plans: %s", err.Error())
+	}
+	for _, servicePlan := range destinationServicePlans {
+		if servicePlan.Name == "lite" {
+			liteServicePlan = &servicePlan
+		}
+	}
+	if liteServicePlan == nil {
+		return fmt.Errorf("Destination service does not have a 'lite' plan")
+	}
+	log.Tracef("Destination service 'lite' plan found: %+v\n", liteServicePlan)
+
+	// Get list of service instances of 'lite' plan
+	log.Tracef("Getting service instances of 'destination' service 'lite' plan (%+v)\n", liteServicePlan)
+	var destinationServiceInstances []models.CFServiceInstance
+	destinationServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*liteServicePlan})
+	if err != nil {
+		return fmt.Errorf("Could not get service instances for 'lite' plan: %s", err.Error())
+	}
+
+	// Create instance of 'lite' plan if needed
+	if len(destinationServiceInstances) == 0 {
+		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
+		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
+		if err != nil {
+			return fmt.Errorf("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
+		}
+		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
+	} else {
+		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
+	}
+
+	// Create service key
+	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
+	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
+	if err != nil {
+		return fmt.Errorf("Could not create service key of %s service instance: %s",
+			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
+			err.Error())
+	}
+
+	// Get destination service lite plan key access token
+	log.Tracef("Getting token for service key %s\n", destinationServiceInstanceKey.Name)
+	destinationServiceInstanceKeyToken, err := clients.GetToken(destinationServiceInstanceKey.Credentials)
+	if err != nil {
+		return fmt.Errorf("Could not obtain access token: %s", err.Error())
+	}
+	log.Tracef("Access token for service key %s: %s\n",
+		destinationServiceInstanceKey.Name,
+		destinationServiceInstanceKeyToken)
+
+	// List subaccount destinations
+	destinations, err := clients.ListSubaccountDestinations(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken)
+	if err != nil {
+		return fmt.Errorf("Could not get list of subaccount destinations: %s", err.Error())
+	}
+	log.Tracef("List of subaccount destinations: %+v\n", destinations)
+
+	// Look for html5 destination
+	var html5Destination *models.DestinationConfiguration
+	for _, destination := range destinations {
+		if destination.Properties["sap.cloud.service"] == *credentials.SapCloudService {
+			html5Destination = &destination
+		}
+	}
+	if html5Destination == nil {
+		log.Tracef("Creating new HTML5 destination\n")
+
+		if credentials.URI == nil {
+			emptyURI := ""
+			credentials.URI = &emptyURI
+		}
+
+		if credentials.SapCloudService == nil {
+			emptyURI := ""
+			credentials.SapCloudService = &emptyURI
+		}
+
+		// Build destination configuration
+		html5Destination = &models.DestinationConfiguration{
+			Name:                strings.Replace(*credentials.SapCloudService, ".", "", -1),
+			Description:         "Business Service Destination",
+			Type:                "HTTP",
+			URL:                 *credentials.URI,
+			Authentication:      "OAuth2ClientCredentials",
+			ProxyType:           "Internet",
+			TokenServiceURL:     credentials.UAA.URL + "/oauth/token",
+			TokenServiceURLType: "Dedicated",
+			ClientID:            credentials.UAA.ClientID,
+			ClientSecret:        credentials.UAA.ClientSecret,
+			Properties: map[string]string{
+				"html5-apps-repo.app_host_id": credentials.HTML5AppsRepo.AppHostID,
+				"sap.cloud.service":           *credentials.SapCloudService,
+			},
+		}
+
+		// Create destination
+		err = clients.CreateSubaccountDestination(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken, *html5Destination)
+		if err != nil {
+			return fmt.Errorf("Could not create subaccount destination: %s", err.Error())
+		}
+		log.Tracef("HTML5 destination created: %+v\n", html5Destination)
+	} else {
+		log.Tracef("HTML5 destination already exist: %+v\n", html5Destination)
+	}
+
+	return nil
 }
 
 func findAppDirectories(cwd string) ([]string, error) {

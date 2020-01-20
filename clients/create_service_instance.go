@@ -13,7 +13,7 @@ import (
 )
 
 // CreateServiceInstance create Cloud Foundry service instance
-func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string, servicePlan models.CFServicePlan) (*models.CFServiceInstance, error) {
+func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string, servicePlan models.CFServicePlan, parameters interface{}) (*models.CFServiceInstance, error) {
 	var serviceInstance *models.CFServiceInstance
 	var responseObject models.CFResource
 	var errorResponseObject models.CFErrorResponse
@@ -21,11 +21,21 @@ func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string,
 	var responseBytes []byte
 	var err error
 	var url string
+	var serviceParameters string
 	var body string
 
 	t := strconv.FormatInt(time.Now().Unix(), 10)
 	url = "/v2/service_instances"
-	body = "'{\"space_guid\":\"" + spaceGUID + "\",\"name\":\"" + servicePlan.Name + "-" + t + "\",\"service_plan_guid\":\"" + servicePlan.GUID + "\"}'"
+	if parameters != nil {
+		parametersBytes, err := json.Marshal(parameters)
+		if err != nil {
+			return nil, err
+		}
+		serviceParameters = "\"parameters\":" + string(parametersBytes) + ","
+	} else {
+		serviceParameters = ""
+	}
+	body = "'{" + serviceParameters + "\"space_guid\":\"" + spaceGUID + "\",\"name\":\"" + servicePlan.Name + "-" + t + "\",\"service_plan_guid\":\"" + servicePlan.GUID + "\"}'"
 
 	log.Tracef("Making request to: %s\n", url)
 	responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url, "-X", "POST", "-d", body)
