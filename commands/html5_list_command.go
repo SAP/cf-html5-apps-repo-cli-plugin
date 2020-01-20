@@ -6,6 +6,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"strings"
@@ -48,7 +49,7 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 
 	// List apps in the space
 	if len(args) == 0 {
-		return c.ListSpaceApps()
+		return c.ListApps(nil)
 	}
 
 	// Parse arguments
@@ -120,6 +121,17 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		// List files paths of application with version
 		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], name, name != "")
 	} else if len(argsMap["_"]) == 1 {
+		// Check if passed argument is app-host-id
+		log.Tracef("Checking if '%s' is an app-host-id\n", argsMap["_"][0])
+		match, err := regexp.MatchString("^[A-Za-z0-9]{8}-([A-Za-z0-9]{4}-){3}[A-Za-z0-9]{12}$", argsMap["_"][0])
+		if err != nil {
+			ui.Failed("Regular expression check failed: %+v", err)
+			return Failure
+		}
+		if match {
+			// List files paths of applications from app-host-id
+			return c.ListApps(&argsMap["_"][0])
+		}
 		// List files paths of application default version
 		return c.ListAppFiles(argsMap["_"][0], "", "", false)
 	}
@@ -405,8 +417,8 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNam
 	return Success
 }
 
-// ListSpaceApps get list of applications for current space
-func (c *ListCommand) ListSpaceApps() ExecutionStatus {
+// ListApps get list of applications for given app-host-id or current space
+func (c *ListCommand) ListApps(appHostGUID *string) ExecutionStatus {
 	// Get context
 	log.Tracef("Getting context (org/space/username)\n")
 	context, err := c.GetContext()
@@ -415,7 +427,13 @@ func (c *ListCommand) ListSpaceApps() ExecutionStatus {
 		return Failure
 	}
 
-	ui.Say("Getting list of HTML5 applications in org %s / space %s as %s...",
+	appHostMessage := ""
+	if appHostGUID != nil {
+		appHostMessage = " with app-host-id " + terminal.EntityNameColor(*appHostGUID)
+	}
+
+	ui.Say("Getting list of HTML5 applications%s in org %s / space %s as %s...",
+		appHostMessage,
 		terminal.EntityNameColor(context.Org),
 		terminal.EntityNameColor(context.Space),
 		terminal.EntityNameColor(context.Username))
@@ -441,13 +459,31 @@ func (c *ListCommand) ListSpaceApps() ExecutionStatus {
 		return Failure
 	}
 
-	// Get list of service instances of app-host plan
-	log.Tracef("Getting service instances of %s service app-host plan (%+v)\n", html5Context.ServiceName, appHostServicePlan)
 	var appHostServiceInstances []models.CFServiceInstance
-	appHostServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*appHostServicePlan})
-	if err != nil {
-		ui.Failed("Could not get service instances for app-host plan: %+v", err)
-		return Failure
+	if appHostGUID == nil {
+		// Get list of service instances of app-host plan
+		log.Tracef("Getting service instances of %s service app-host plan (%+v)\n", html5Context.ServiceName, appHostServicePlan)
+		appHostServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*appHostServicePlan})
+		if err != nil {
+			ui.Failed("Could not get service instances for app-host plan: %+v", err)
+			return Failure
+		}
+	} else {
+		// Use service instance with provided app-host-id
+		appHostServiceInstances = []models.CFServiceInstance{
+			models.CFServiceInstance{
+				GUID: *appHostGUID,
+				Name: "-",
+				LastOperation: models.CFLastOperation{
+					State:       "-",
+					Type:        "-",
+					Description: "-",
+					UpdatedAt:   "-",
+					CreatedAt:   "-",
+				},
+				UpdatedAt: "-",
+			},
+		}
 	}
 
 	// Get list of applications for each app-host service instance
