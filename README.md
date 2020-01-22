@@ -136,6 +136,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.0` | The `--destination` options added           |
 | `v1.2.0` | The `--name` and `--redeploy` options added |
 | `v1.0.0` | Added in `v1.0.0`                           |
 
@@ -146,7 +147,7 @@ NAME:
    html5-push - Push HTML5 applications to html5-apps-repo service
 
 USAGE:
-   cf html5-push [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
+   cf html5-push [-d] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
 
 OPTIONS:
    -APP_HOST_ID              GUID of html5-apps-repo app-host service instance 
@@ -156,6 +157,8 @@ OPTIONS:
                              applications should be deployed
    -PATH_TO_APP_FOLDER       One or multiple paths to folders containing 
                              manifest.json and xs-app.json files
+   --destination,-d          Create subaccount level destination with
+                             credentials to access HTML5 applications                           
    --name,-n                 Use app-host service instance with specified name
    --redeploy,-r             Redeploy HTML5 applications. All applications
                              should be previously deployed to same service 
@@ -218,6 +221,8 @@ The configuration of the HTML5 CLI Plugin is done via environment variables.
 The following are supported:
   * `DEBUG=1` - enables trace logs with detailed information about currently running steps
   * `HTML5_SERVICE_NAME` - name of the service in CF marketplace (default: `html5-apps-repo`)
+  * `HTML5_RUNTIME_URL` - URL of HTML5 runtime to serve business service 
+    destinations (default: `https://<tenant>.cpp.<landscape_url>`)
 
 ## Troubleshooting
 
