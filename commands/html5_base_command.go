@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 const (
@@ -124,9 +125,10 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	log.Tracef("Access token for service key %s: %s\n", appRuntimeServiceInstanceKey.Name, appRuntimeServiceInstanceKeyToken)
 
 	// Runtime URL
-	runtimeURL := os.Getenv("RUNTIME_URL")
+	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
 	if runtimeURL == "" {
-		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp.cfapps.sap.hana.ondemand.com"
+		uri := *appRuntimeServiceInstanceKey.Credentials.URI
+		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp" + uri[strings.Index(uri, "."):]
 	}
 	html5Context.RuntimeURL = runtimeURL
 
