@@ -29,15 +29,16 @@ func (c *ListCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-list",
 		HelpText: "Display list of HTML5 applications or file paths of specified application",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-a CF_APP_NAME [-u]]",
+			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-d|-a CF_APP_NAME [-u]]",
 			Options: map[string]string{
-				"APP_NAME":      "Application name, which file paths should be listed. If not provided, list of applications will be printed",
-				"APP_VERSION":   "Application version, which file paths should be listed. If not provided, current active version will be used",
-				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"-name, -n":     "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
-				"-app, -a":      "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
-				"-url, -u":      "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag",
+				"APP_NAME":         "Application name, which file paths should be listed. If not provided, list of applications will be printed",
+				"APP_VERSION":      "Application version, which file paths should be listed. If not provided, current active version will be used",
+				"APP_HOST_ID":      "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"APP_HOST_NAME":    "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"-destination, -d": "List HTML5 applications exposed via destinations with sap.cloud.service and html5-apps-repo.app_host_id properties",
+				"-name, -n":        "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
+				"-app, -a":         "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
+				"-url, -u":         "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag or when --destination flag is used",
 			},
 		},
 	}
@@ -111,9 +112,18 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		showUrls = true
 	}
 
+	var destination = false
+	if argsMap["-d"] != nil || argsMap["--destination"] != nil {
+		destination = true
+	}
+
 	if app != "" {
 		// List HTML5 applications available in CF application context
 		return c.ListAppApps(app, showUrls)
+	} else if destination {
+		// List HTML5 applications available via destinations with
+		// sap.cloud.service and html5-apps-repo.app_host_id properties
+		return c.ListDestinationApps(showUrls)
 	} else if len(argsMap["_"]) == 3 {
 		// List files paths of application with version from app-host-id
 		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], argsMap["_"][2], false)
@@ -138,6 +148,211 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 
 	ui.Failed("Too much arguments. See [cf html5-list --help] for more detals")
 	return Failure
+}
+
+// ListDestinationApps get list of HTML5 applications available via destinations
+func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
+
+	log.Tracef("Listing HTML5 applications available via destinations\n")
+
+	// Get context
+	log.Tracef("Getting context (org/space/username)\n")
+	context, err := c.GetContext()
+	if err != nil {
+		ui.Failed("Could not get org and space: %s", err.Error())
+		return Failure
+	}
+
+	ui.Say("Getting list of HTML5 application available via destinations in org %s / space %s as %s...",
+		terminal.EntityNameColor(context.Org),
+		terminal.EntityNameColor(context.Space),
+		terminal.EntityNameColor(context.Username))
+
+	// Get HTML5 context
+	html5Context, err := c.GetHTML5Context(context)
+	if err != nil {
+		ui.Failed(err.Error())
+		return Failure
+	}
+
+	// Find destination service
+	log.Tracef("Looking for 'destination' service\n")
+	var destinationService *models.CFService
+	for _, service := range html5Context.Services {
+		if service.Name == "destination" {
+			destinationService = &service
+			break
+		}
+	}
+	if destinationService == nil {
+		ui.Failed("Destination service is not in the list of available services." +
+			" Make sure your subaccount has entitlement to use it")
+		return Failure
+	}
+	log.Tracef("Destination service found: %+v\n", destinationService)
+
+	// Find destination service "lite" plan
+	log.Tracef("Getting service plans for 'destination' service (GUID: %s)\n", destinationService.GUID)
+	var liteServicePlan *models.CFServicePlan
+	destinationServicePlans, err := clients.GetServicePlans(c.CliConnection, destinationService.GUID)
+	if err != nil {
+		ui.Failed("Could not get service plans: %s", err.Error())
+		return Failure
+	}
+	for _, servicePlan := range destinationServicePlans {
+		if servicePlan.Name == "lite" {
+			liteServicePlan = &servicePlan
+		}
+	}
+	if liteServicePlan == nil {
+		ui.Failed("Destination service does not have a 'lite' plan")
+		return Failure
+	}
+	log.Tracef("Destination service 'lite' plan found: %+v\n", liteServicePlan)
+
+	// Get list of service instances of 'lite' plan
+	log.Tracef("Getting service instances of 'destination' service 'lite' plan (%+v)\n", liteServicePlan)
+	var destinationServiceInstances []models.CFServiceInstance
+	destinationServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*liteServicePlan})
+	if err != nil {
+		ui.Failed("Could not get service instances for 'lite' plan: %s", err.Error())
+		return Failure
+	}
+
+	// Create instance of 'lite' plan if needed
+	if len(destinationServiceInstances) == 0 {
+		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
+		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
+		if err != nil {
+			ui.Failed("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
+			return Failure
+		}
+		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
+	} else {
+		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
+	}
+
+	// Create service key
+	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
+	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
+	if err != nil {
+		ui.Failed("Could not create service key of %s service instance: %s",
+			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
+			err.Error())
+		return Failure
+	}
+
+	// Get destination service lite plan key access token
+	log.Tracef("Getting token for service key %s\n", destinationServiceInstanceKey.Name)
+	destinationServiceInstanceKeyToken, err := clients.GetToken(destinationServiceInstanceKey.Credentials)
+	if err != nil {
+		ui.Failed("Could not obtain access token: %s", err.Error())
+		return Failure
+	}
+	log.Tracef("Access token for service key %s: %s\n",
+		destinationServiceInstanceKey.Name,
+		destinationServiceInstanceKeyToken)
+
+	// List subaccount destinations
+	destinations, err := clients.ListSubaccountDestinations(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken)
+	if err != nil {
+		ui.Failed("Could not get list of subaccount destinations: %s", err.Error())
+		return Failure
+	}
+	log.Tracef("List of subaccount destinations: %+v\n", destinations)
+
+	// Table columns
+	columns := make([]string, 0)
+	columns = append(columns, "name", "version", "app-host-id", "service name", "destination name", "last changed")
+	if showUrls {
+		columns = append(columns, "url")
+	}
+
+	// Table rows
+	rows := make([][]string, 0)
+
+	// Table
+	table := ui.Table(columns)
+
+	// Iterate over business service destinations
+	for _, destination := range destinations {
+		if serviceName, ok := destination.Properties["sap.cloud.service"]; ok {
+			if appHostGUIDs, ok := destination.Properties["html5-apps-repo.app_host_id"]; ok {
+				for _, appHostGUID := range strings.Split(appHostGUIDs, ",") {
+					appHostGUID = strings.Trim(appHostGUID, " ")
+					log.Tracef("Getting list of applications for app-host-id '%s' of service '%s' defined in destination with name '%s'\n",
+						appHostGUID,
+						serviceName,
+						destination.Name)
+					applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
+					if err != nil {
+						ui.Failed("Could not get list of applications for app-host-id '%s' of service '%s': %+v", appHostGUID, serviceName, err)
+						return Failure
+					}
+					log.Tracef("Got list of applications for app-host-id '%s' of service '%s' defined in destination with name '%s': %+v\n",
+						appHostGUID,
+						serviceName,
+						destination.Name,
+						applications)
+					for _, application := range applications {
+						row := make([]string, len(columns))
+						row[0] = application.ApplicationName
+						row[1] = application.ApplicationVersion
+						row[2] = appHostGUID
+						row[3] = serviceName
+						row[4] = destination.Name
+						row[5] = application.ChangedOn
+						if showUrls {
+							row[6] = destination.URL + "/" + strings.Replace(serviceName, ".", "", -1) +
+								"." + application.ApplicationName + "-" + application.ApplicationVersion + "/"
+						}
+						rows = append(rows, row)
+					}
+				}
+			} else {
+				row := make([]string, len(columns))
+				row[0] = "-"
+				row[1] = "-"
+				row[2] = "-"
+				row[3] = serviceName
+				row[4] = destination.Name
+				row[5] = "-"
+				if showUrls {
+					row[6] = destination.URL
+				}
+				rows = append(rows, row)
+			}
+		}
+	}
+
+	// Clean-up destination service key
+	err = clients.DeleteServiceKey(c.CliConnection, destinationServiceInstanceKey.GUID, maxRetryCount)
+	if err != nil {
+		ui.Failed("Could not delete destination service key: %s\nYou can try to delete it manually with [cf dsk %s %s]\n",
+			err.Error(),
+			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
+			destinationServiceInstanceKey.Name)
+		return Failure
+	}
+
+	// Clean-up HTML5 context
+	err = c.CleanHTML5Context(html5Context)
+	if err != nil {
+		ui.Failed(err.Error())
+		return Failure
+	}
+
+	ui.Ok()
+	ui.Say("")
+
+	// Display information about HTML5 applications
+	for _, row := range rows {
+		table.Add(row...)
+	}
+	table.Print()
+
+	return Success
 }
 
 // ListAppApps get list of HTML5 applications available in CF application context

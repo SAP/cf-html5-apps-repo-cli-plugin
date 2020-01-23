@@ -64,6 +64,7 @@ The HTML5 Applications Repository CLI Plugin supports the following commands:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.0` | The `--destination` option added            |
 | `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | The `--url` option added                    |
 | `v1.0.0` | Added in `v1.0.0`                           |
@@ -75,7 +76,7 @@ NAME:
    html5-list - Display list of HTML5 applications or file paths of specified application
 
 USAGE:
-   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-a CF_APP_NAME [-u]]
+   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-d|-a CF_APP_NAME [-u]]
 
 OPTIONS:
    -APP_NAME          Application name, which file paths should be listed.
@@ -86,12 +87,16 @@ OPTIONS:
                       contains application with specified name and version
    -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
                       contains application with specified name and version
-   --name, -n         Use html5-apps-repo app-host service instance name 
+   --name, -n         Use html5-apps-repo app-host service instance name
                       instead of APP_HOST_ID
+   --destination, -d  List HTML5 applications exposed via destinations with 
+                      sap.cloud.service and html5-apps-repo.app_host_id 
+                      properties 
    --app, -a          Cloud Foundry application name, which is bound to
                       services that expose UI via html5-apps-repo
    --url, -u          Show conventional URLs of applications, when accessed 
-                      via Cloud Foundry application specified with --app flag                   
+                      via Cloud Foundry application specified with --app flag
+                      or when --destination flag is used                   
 ```
 
 #### html5-get

@@ -11,12 +11,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Error handling for service broker errors added ([#16](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/16)) 
 - Error handling for `html5-list -a`, when application does not exist ([#19](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/19))
 - Support of `--destination` flag for `html5-push`
+- Support of `--destination` flag for `html5-list`
 - Support custom HTML5 runtime for business service destinations with `HTML5_RUNTIME_URL` 
   environement variable (default: `https://<tenant>.cpp.<landscape_url>`)
 
 ### Changed
 - List command `html5-list` now checks if first and the only argument passed is an app-host-id,
   and displays list of applications from provided service instace
+- Flag `--url` now may be used not only with `--applicaiton` option, but also with `--destination`
+  option in `html5-list` command
 
 ### Fixed
 - Report an error if `html5-delete` failed to delete service instance ([#22](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/22))
