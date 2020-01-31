@@ -23,12 +23,13 @@ func (c *DeleteCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-delete",
 		HelpText: "Delete one or multiple app-host service instances or content uploaded with these instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-delete [--content] APP_HOST_ID|-n APP_HOST_NAME [...]",
+			Usage: "cf html5-delete [--content|--destination] APP_HOST_ID|-n APP_HOST_NAME [...]",
 			Options: map[string]string{
-				"-content":      "delete content only",
-				"-name,-n":      "Use app-host service instance with specified name",
-				"APP_HOST_ID":   "GUID of html5-apps-repo app-host service instance",
-				"APP_HOST_NAME": "Name of html5-apps-repo app-host service instance",
+				"-content":        "delete content only",
+				"-destination,-d": "delete destinations that point to service instances to be deleted",
+				"-name,-n":        "Use app-host service instance with specified name",
+				"APP_HOST_ID":     "GUID of html5-apps-repo app-host service instance",
+				"APP_HOST_NAME":   "Name of html5-apps-repo app-host service instance",
 			},
 		},
 	}
@@ -40,17 +41,25 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 
 	flagSet := flag.NewFlagSet("html5-delete", flag.ContinueOnError)
 	contentFlag := flagSet.Bool("content", false, "delete content only")
+	destinationFlag := flagSet.Bool("destination", false, "delete destinations that point to service instances to be deleted")
+	destinationFlagAlias := flagSet.Bool("d", false, "delete destinations that point to service instances to be deleted")
+
 	var appHostNames stringSlice
 	flagSet.Var(&appHostNames, "name", "Name of html5-apps-repo app-host service instance")
 	flagSet.Var(&appHostNames, "n", "Name of html5-apps-repo app-host service instance (alias)")
 	flagSet.Parse(args)
+
+	// Normalize aliases
+	if *destinationFlagAlias && !*destinationFlag {
+		destinationFlag = destinationFlagAlias
+	}
 
 	if flagSet.NArg() > 0 || len(appHostNames) > 0 {
 		appHostGUIDs := flagSet.Args()
 		if *contentFlag {
 			return c.DeleteServiceInstancesContent(appHostGUIDs, appHostNames)
 		}
-		return c.DeleteServiceInstances(appHostGUIDs, appHostNames)
+		return c.DeleteServiceInstances(appHostGUIDs, appHostNames, *destinationFlag)
 	}
 
 	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more detals")
@@ -93,7 +102,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 		log.Tracef("Creating service key for app-host-id '%s'\n", appHostGUID)
 		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID)
 		if err != nil {
-			ui.Failed("Could not create service key for service instance with id '%s' : %+v", appHostGUID, err)
+			ui.Failed("Could not create service key for service instance with id '%s' : %+v\n", appHostGUID, err)
 			return Failure
 		}
 
@@ -101,14 +110,14 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 		log.Tracef("Obtaining access token for service key '%s'\n", serviceKey.Name)
 		token, err := clients.GetToken(serviceKey.Credentials)
 		if err != nil {
-			ui.Failed("Could not obtain access token for service key '': %+v", serviceKey.Name, err)
+			ui.Failed("Could not obtain access token for service key '': %+v\n", serviceKey.Name, err)
 			return Failure
 		}
 
 		// Delete app-host service content
 		log.Tracef("Deleting content of service with app-host-id '%s'\n", appHostGUID)
 		if clients.DeleteServiceContent(*serviceKey.Credentials.URI, token) != nil {
-			ui.Failed("Could not delete content of service with app-host-id '%s' : %+v", appHostGUID, err)
+			ui.Failed("Could not delete content of service with app-host-id '%s' : %+v\n", appHostGUID, err)
 			return Failure
 		}
 
@@ -116,7 +125,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 		log.Tracef("Deleting temporarry service key: '%s'\n", serviceKey.Name)
 		err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID, maxRetryCount)
 		if err != nil {
-			ui.Failed("Could not delete service key '%s' : %+v", serviceKey.Name, err)
+			ui.Failed("Could not delete service key '%s' : %+v\n", serviceKey.Name, err)
 			return Failure
 		}
 	}
@@ -129,7 +138,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 
 // DeleteServiceInstances delete service instances by app-host-ids,
 // including all dependent service keys
-func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string) ExecutionStatus {
+func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string, deleteDestinations bool) ExecutionStatus {
 	log.Tracef("Deleting service instances by app-host-ids: %v\n", appHostGUIDs)
 	var err error
 
@@ -137,7 +146,7 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 	log.Tracef("Getting context (org/space/username)\n")
 	context, err := c.GetContext()
 	if err != nil {
-		ui.Failed("Could not get org and space: %s", err.Error())
+		ui.Failed("Could not get org and space: %s\n", err.Error())
 		return Failure
 	}
 
@@ -146,7 +155,7 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
 		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
 		if err != nil {
-			ui.Failed("%+v", err)
+			ui.Failed("Could not get service instance by name: %+v\n", err)
 			return Failure
 		}
 		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
@@ -165,7 +174,7 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		// Get service keys
 		serviceKeys, err := clients.GetServiceKeys(c.CliConnection, appHostGUID)
 		if err != nil {
-			ui.Failed("Could not get list of service keys for app-host-id %s: %+v", appHostGUID, err)
+			ui.Failed("Could not get list of service keys for app-host-id %s: %+v\n", appHostGUID, err)
 			return Failure
 		}
 		// Delete dependent service keys
@@ -173,7 +182,7 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 			log.Tracef("Deleting service key %s (%s)\n", serviceKey.GUID, serviceKey.Name)
 			err = clients.DeleteServiceKey(c.CliConnection, serviceKey.GUID, maxRetryCount)
 			if err != nil {
-				ui.Failed("Could not delete service key %s: %+v", serviceKey.GUID, err)
+				ui.Failed("Could not delete service key %s: %+v\n", serviceKey.GUID, err)
 				return Failure
 			}
 		}
@@ -181,10 +190,53 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		// Delete service instance
 		err = clients.DeleteServiceInstance(c.CliConnection, appHostGUID, maxRetryCount)
 		if err != nil {
-			ui.Failed("Could not delete service instance %s: %+v", appHostGUID, err)
+			ui.Failed("Could not delete service instance %s: %+v\n", appHostGUID, err)
 			return Failure
 		}
 		log.Tracef("Service instance %s successfully deleted\n", appHostGUID)
+	}
+
+	// Delete destinatons if needed
+	if deleteDestinations {
+		// Create destination context
+		log.Tracef("Getting destination service context\n")
+		destinationContext, err := c.GetDestinationContext(context)
+		if err != nil {
+			ui.Failed("Could not create destination context: %+v\n", err)
+			return Failure
+		}
+
+		// List destinations
+		destinations, err := clients.ListSubaccountDestinations(
+			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+			destinationContext.DestinationServiceInstanceKeyToken)
+
+		// Find relevant destinations and delete them
+		for _, destination := range destinations {
+			if val, ok := destination.Properties["html5-apps-repo.app_host_id"]; ok {
+				val = strings.Trim(val, " ")
+				for _, appHostGUID := range appHostGUIDs {
+					if val == appHostGUID {
+						log.Tracef("Deleting destination '%s'\n", destination.Name)
+						err = clients.DeleteSubaccountDestination(
+							*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+							destinationContext.DestinationServiceInstanceKeyToken,
+							destination.Name)
+						if err != nil {
+							ui.Failed("Could not delete destination '%s': %+v\n", destination.Name, err)
+							return Failure
+						}
+					}
+				}
+			}
+		}
+
+		// Clen-up destination context
+		err = c.CleanDestinationContext(destinationContext)
+		if err != nil {
+			ui.Failed("Could not clean destination context: %+v\n", err)
+			return Failure
+		}
 	}
 
 	ui.Ok()

@@ -19,6 +19,127 @@ type HTML5Command struct {
 	BaseCommand
 }
 
+// GetDestinationContext get destination context
+func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContext, error) {
+
+	// Context to return
+	var destinationContext = DestinationContext{}
+
+	// Get all services
+	log.Tracef("Getting list of services\n")
+	services, err := clients.GetServices(c.CliConnection)
+	if err != nil {
+		return destinationContext, errors.New("Could not get services: " + err.Error())
+	}
+
+	// Find destination service
+	log.Tracef("Looking for 'destination' service\n")
+	var destinationService *models.CFService
+	for _, service := range services {
+		if service.Name == "destination" {
+			destinationService = &service
+			break
+		}
+	}
+	if destinationService == nil {
+		return destinationContext, fmt.Errorf("Destination service is not in the list of available services." +
+			" Make sure your subaccount has entitlement to use it")
+	}
+	log.Tracef("Destination service found: %+v\n", destinationService)
+	destinationContext.DestinationService = destinationService
+
+	// Find destination service "lite" plan
+	log.Tracef("Getting service plans for 'destination' service (GUID: %s)\n", destinationService.GUID)
+	var liteServicePlan *models.CFServicePlan
+	destinationServicePlans, err := clients.GetServicePlans(c.CliConnection, destinationService.GUID)
+	if err != nil {
+		return destinationContext, fmt.Errorf("Could not get service plans: %s", err.Error())
+	}
+	for _, servicePlan := range destinationServicePlans {
+		if servicePlan.Name == "lite" {
+			liteServicePlan = &servicePlan
+		}
+	}
+	if liteServicePlan == nil {
+		return destinationContext, fmt.Errorf("Destination service does not have a 'lite' plan")
+	}
+	log.Tracef("Destination service 'lite' plan found: %+v\n", liteServicePlan)
+	destinationContext.DestinationServicePlan = liteServicePlan
+
+	// Get list of service instances of 'lite' plan
+	log.Tracef("Getting service instances of 'destination' service 'lite' plan (%+v)\n", liteServicePlan)
+	var destinationServiceInstances []models.CFServiceInstance
+	destinationServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*liteServicePlan})
+	if err != nil {
+		return destinationContext, fmt.Errorf("Could not get service instances for 'lite' plan: %s", err.Error())
+	}
+	destinationContext.DestinationServiceInstances = destinationServiceInstances
+
+	// Create instance of 'lite' plan if needed
+	if len(destinationServiceInstances) == 0 {
+		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
+		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
+		if err != nil {
+			return destinationContext, fmt.Errorf("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
+		}
+		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
+		destinationContext.DestinationServiceInstance = destinationServiceInstance
+	} else {
+		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
+	}
+
+	// Create service key
+	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
+	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
+	if err != nil {
+		return destinationContext, fmt.Errorf("Could not create service key of %s service instance: %s",
+			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
+			err.Error())
+	}
+	destinationContext.DestinationServiceInstanceKey = destinationServiceInstanceKey
+
+	// Get destination service lite plan key access token
+	log.Tracef("Getting token for service key %s\n", destinationServiceInstanceKey.Name)
+	destinationServiceInstanceKeyToken, err := clients.GetToken(destinationServiceInstanceKey.Credentials)
+	if err != nil {
+		return destinationContext, fmt.Errorf("Could not obtain access token: %s", err.Error())
+	}
+	log.Tracef("Access token for service key %s: %s\n",
+		destinationServiceInstanceKey.Name,
+		destinationServiceInstanceKeyToken)
+	destinationContext.DestinationServiceInstanceKeyToken = destinationServiceInstanceKeyToken
+
+	return destinationContext, nil
+}
+
+// CleanDestinationContext clean destination context
+func (c *HTML5Command) CleanDestinationContext(destinationContext DestinationContext) error {
+	var err error
+
+	// Delete service key
+	if destinationContext.DestinationServiceInstanceKey != nil {
+		log.Tracef("Deleting service key %s\n", destinationContext.DestinationServiceInstanceKey.Name)
+		err = clients.DeleteServiceKey(c.CliConnection, destinationContext.DestinationServiceInstanceKey.GUID, maxRetryCount)
+		if err != nil {
+			return errors.New("Could not delete service key" + destinationContext.DestinationServiceInstanceKey.Name + ": " + err.Error())
+		}
+		destinationContext.DestinationServiceInstanceKey = nil
+	}
+
+	// Delete service instance
+	if destinationContext.DestinationServiceInstance != nil {
+		log.Tracef("Deleting service instance %s\n", destinationContext.DestinationServiceInstance.Name)
+		err = clients.DeleteServiceInstance(c.CliConnection, destinationContext.DestinationServiceInstance.GUID, maxRetryCount)
+		if err != nil {
+			return errors.New("Could not delete service instance of lite plan: " + err.Error())
+		}
+		log.Tracef("Service instance %s successfully deleted\n", destinationContext.DestinationServiceInstance.Name)
+		destinationContext.DestinationServiceInstance = nil
+	}
+
+	return nil
+}
+
 // GetHTML5Context get HTML5 context
 func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 
@@ -183,6 +304,22 @@ type HTML5Context struct {
 	HTML5AppRuntimeServiceInstanceKeyToken string
 	// Runtime application URL
 	RuntimeURL string
+}
+
+// DestinationContext Destination context struct
+type DestinationContext struct {
+	// Pointer to destination service
+	DestinationService *models.CFService
+	// Pointer to 'lite' plan of destination service
+	DestinationServicePlan *models.CFServicePlan
+	// List of destination service instances
+	DestinationServiceInstances []models.CFServiceInstance
+	// Pointer to destination service instance created during context initialization
+	DestinationServiceInstance *models.CFServiceInstance
+	// Pointer to destination service key created during context initialization
+	DestinationServiceInstanceKey *models.CFServiceKey
+	// Access token of destination service key
+	DestinationServiceInstanceKeyToken string
 }
 
 type stringSlice []string

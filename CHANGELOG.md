@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Error handling for `html5-list -a`, when application does not exist ([#19](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/19))
 - Support of `--destination` flag for `html5-push`
 - Support of `--destination` flag for `html5-list`
+- Support of `--destination` flag for `html5-delete`
 - Support custom HTML5 runtime for business service destinations with `HTML5_RUNTIME_URL` 
   environement variable (default: `https://<tenant>.cpp.<landscape_url>`)
 

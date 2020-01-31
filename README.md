@@ -176,6 +176,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.0` | The `--destination` options added           |
 | `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | Added in `v1.1.0`                           |
 
@@ -187,10 +188,11 @@ NAME:
                   uploaded with these instances
 
 USAGE:
-   cf html5-delete [--content] APP_HOST_ID|-n APP_HOST_NAME [...]
+   cf html5-delete [--content|--destination] APP_HOST_ID|-n APP_HOST_NAME [...]
 
 OPTIONS:
    --content                  delete content only
+   --destination,-d           delete destinations that point to service instances to be deleted
    --name,-n                  Use app-host service instance with specified name
    -APP_HOST_ID               GUID of html5-apps-repo app-host service instance
    -APP_HOST_NAME             Name of html5-apps-repo app-host service instance
