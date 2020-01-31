@@ -141,7 +141,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
-| `v1.4.0` | The `--destination` options added           |
+| `v1.4.0` | The `--destination` option added            |
 | `v1.2.0` | The `--name` and `--redeploy` options added |
 | `v1.0.0` | Added in `v1.0.0`                           |
 
@@ -176,7 +176,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
-| `v1.4.0` | The `--destination` options added           |
+| `v1.4.0` | The `--destination` option added            |
 | `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | Added in `v1.1.0`                           |
 
