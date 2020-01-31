@@ -653,7 +653,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		}
 
 		// Create destination configuration
-		err = c.CreateHTML5Destination(context, html5Context, credentials)
+		err = c.CreateHTML5Destination(context, credentials)
 		if err != nil {
 			ui.Failed("Could not create destination configuration")
 			return Failure
@@ -685,84 +685,21 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 }
 
 // CreateHTML5Destination cretes destination with XSUAA credentials, "sap.cloud.service" and "app-host-id"
-func (c *PushCommand) CreateHTML5Destination(context Context, html5Context HTML5Context, credentials models.CFCredentials) error {
+func (c *PushCommand) CreateHTML5Destination(context Context, credentials models.CFCredentials) error {
 	var err error
 
 	log.Tracef("Creating subaccount destination with credentials: %+v\n", credentials)
 
-	// Find destination service
-	log.Tracef("Looking for 'destination' service\n")
-	var destinationService *models.CFService
-	for _, service := range html5Context.Services {
-		if service.Name == "destination" {
-			destinationService = &service
-			break
-		}
-	}
-	if destinationService == nil {
-		return fmt.Errorf("Destination service is not in the list of available services." +
-			" Make sure your subaccount has entitlement to use it")
-	}
-	log.Tracef("Destination service found: %+v\n", destinationService)
-
-	// Find destination service "lite" plan
-	log.Tracef("Getting service plans for 'destination' service (GUID: %s)\n", destinationService.GUID)
-	var liteServicePlan *models.CFServicePlan
-	destinationServicePlans, err := clients.GetServicePlans(c.CliConnection, destinationService.GUID)
+	// Get destination context
+	destinationContext, err := c.GetDestinationContext(context)
 	if err != nil {
-		return fmt.Errorf("Could not get service plans: %s", err.Error())
+		return fmt.Errorf("Could not create destination context: %s", err.Error())
 	}
-	for _, servicePlan := range destinationServicePlans {
-		if servicePlan.Name == "lite" {
-			liteServicePlan = &servicePlan
-		}
-	}
-	if liteServicePlan == nil {
-		return fmt.Errorf("Destination service does not have a 'lite' plan")
-	}
-	log.Tracef("Destination service 'lite' plan found: %+v\n", liteServicePlan)
-
-	// Get list of service instances of 'lite' plan
-	log.Tracef("Getting service instances of 'destination' service 'lite' plan (%+v)\n", liteServicePlan)
-	var destinationServiceInstances []models.CFServiceInstance
-	destinationServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*liteServicePlan})
-	if err != nil {
-		return fmt.Errorf("Could not get service instances for 'lite' plan: %s", err.Error())
-	}
-
-	// Create instance of 'lite' plan if needed
-	if len(destinationServiceInstances) == 0 {
-		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
-		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
-		if err != nil {
-			return fmt.Errorf("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
-		}
-		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
-	} else {
-		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
-	}
-
-	// Create service key
-	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
-	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
-	if err != nil {
-		return fmt.Errorf("Could not create service key of %s service instance: %s",
-			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
-			err.Error())
-	}
-
-	// Get destination service lite plan key access token
-	log.Tracef("Getting token for service key %s\n", destinationServiceInstanceKey.Name)
-	destinationServiceInstanceKeyToken, err := clients.GetToken(destinationServiceInstanceKey.Credentials)
-	if err != nil {
-		return fmt.Errorf("Could not obtain access token: %s", err.Error())
-	}
-	log.Tracef("Access token for service key %s: %s\n",
-		destinationServiceInstanceKey.Name,
-		destinationServiceInstanceKeyToken)
 
 	// List subaccount destinations
-	destinations, err := clients.ListSubaccountDestinations(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken)
+	destinations, err := clients.ListSubaccountDestinations(
+		*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+		destinationContext.DestinationServiceInstanceKeyToken)
 	if err != nil {
 		return fmt.Errorf("Could not get list of subaccount destinations: %s", err.Error())
 	}
@@ -807,13 +744,22 @@ func (c *PushCommand) CreateHTML5Destination(context Context, html5Context HTML5
 		}
 
 		// Create destination
-		err = clients.CreateSubaccountDestination(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken, *html5Destination)
+		err = clients.CreateSubaccountDestination(
+			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+			destinationContext.DestinationServiceInstanceKeyToken,
+			*html5Destination)
 		if err != nil {
 			return fmt.Errorf("Could not create subaccount destination: %s", err.Error())
 		}
 		log.Tracef("HTML5 destination created: %+v\n", html5Destination)
 	} else {
 		log.Tracef("HTML5 destination already exist: %+v\n", html5Destination)
+	}
+
+	// Clean-up destination context
+	err = c.CleanDestinationContext(destinationContext)
+	if err != nil {
+		return fmt.Errorf("Could not clean-up destination context: %s", err.Error())
 	}
 
 	return nil

@@ -175,86 +175,17 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 		return Failure
 	}
 
-	// Find destination service
-	log.Tracef("Looking for 'destination' service\n")
-	var destinationService *models.CFService
-	for _, service := range html5Context.Services {
-		if service.Name == "destination" {
-			destinationService = &service
-			break
-		}
-	}
-	if destinationService == nil {
-		ui.Failed("Destination service is not in the list of available services." +
-			" Make sure your subaccount has entitlement to use it")
-		return Failure
-	}
-	log.Tracef("Destination service found: %+v\n", destinationService)
-
-	// Find destination service "lite" plan
-	log.Tracef("Getting service plans for 'destination' service (GUID: %s)\n", destinationService.GUID)
-	var liteServicePlan *models.CFServicePlan
-	destinationServicePlans, err := clients.GetServicePlans(c.CliConnection, destinationService.GUID)
+	// Get Destination context
+	destinationContext, err := c.GetDestinationContext(context)
 	if err != nil {
-		ui.Failed("Could not get service plans: %s", err.Error())
+		ui.Failed(err.Error())
 		return Failure
 	}
-	for _, servicePlan := range destinationServicePlans {
-		if servicePlan.Name == "lite" {
-			liteServicePlan = &servicePlan
-		}
-	}
-	if liteServicePlan == nil {
-		ui.Failed("Destination service does not have a 'lite' plan")
-		return Failure
-	}
-	log.Tracef("Destination service 'lite' plan found: %+v\n", liteServicePlan)
-
-	// Get list of service instances of 'lite' plan
-	log.Tracef("Getting service instances of 'destination' service 'lite' plan (%+v)\n", liteServicePlan)
-	var destinationServiceInstances []models.CFServiceInstance
-	destinationServiceInstances, err = clients.GetServiceInstances(c.CliConnection, context.SpaceID, []models.CFServicePlan{*liteServicePlan})
-	if err != nil {
-		ui.Failed("Could not get service instances for 'lite' plan: %s", err.Error())
-		return Failure
-	}
-
-	// Create instance of 'lite' plan if needed
-	if len(destinationServiceInstances) == 0 {
-		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
-		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
-		if err != nil {
-			ui.Failed("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
-			return Failure
-		}
-		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
-	} else {
-		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
-	}
-
-	// Create service key
-	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
-	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
-	if err != nil {
-		ui.Failed("Could not create service key of %s service instance: %s",
-			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
-			err.Error())
-		return Failure
-	}
-
-	// Get destination service lite plan key access token
-	log.Tracef("Getting token for service key %s\n", destinationServiceInstanceKey.Name)
-	destinationServiceInstanceKeyToken, err := clients.GetToken(destinationServiceInstanceKey.Credentials)
-	if err != nil {
-		ui.Failed("Could not obtain access token: %s", err.Error())
-		return Failure
-	}
-	log.Tracef("Access token for service key %s: %s\n",
-		destinationServiceInstanceKey.Name,
-		destinationServiceInstanceKeyToken)
 
 	// List subaccount destinations
-	destinations, err := clients.ListSubaccountDestinations(*destinationServiceInstanceKey.Credentials.URI, destinationServiceInstanceKeyToken)
+	destinations, err := clients.ListSubaccountDestinations(
+		*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+		destinationContext.DestinationServiceInstanceKeyToken)
 	if err != nil {
 		ui.Failed("Could not get list of subaccount destinations: %s", err.Error())
 		return Failure
@@ -284,7 +215,8 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 						appHostGUID,
 						serviceName,
 						destination.Name)
-					applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+					applications, err := clients.ListApplicationsForAppHost(
+						*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 					if err != nil {
 						ui.Failed("Could not get list of applications for app-host-id '%s' of service '%s': %+v", appHostGUID, serviceName, err)
@@ -326,13 +258,10 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 		}
 	}
 
-	// Clean-up destination service key
-	err = clients.DeleteServiceKey(c.CliConnection, destinationServiceInstanceKey.GUID, maxRetryCount)
+	// Clean-up destination context
+	err = c.CleanDestinationContext(destinationContext)
 	if err != nil {
-		ui.Failed("Could not delete destination service key: %s\nYou can try to delete it manually with [cf dsk %s %s]\n",
-			err.Error(),
-			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
-			destinationServiceInstanceKey.Name)
+		ui.Failed(err.Error())
 		return Failure
 	}
 
