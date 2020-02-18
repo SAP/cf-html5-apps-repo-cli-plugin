@@ -58,6 +58,7 @@ func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContex
 	for _, servicePlan := range destinationServicePlans {
 		if servicePlan.Name == "lite" {
 			liteServicePlan = &servicePlan
+			break
 		}
 	}
 	if liteServicePlan == nil {
