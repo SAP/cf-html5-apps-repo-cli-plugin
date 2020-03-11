@@ -123,6 +123,7 @@ func (d *HTML5AppDescriptor) GetAllScopes() []string {
 	return scopes
 }
 
+// IsAuthorizationRequired check if there are routes protected with scopes
 func (d *HTML5AppDescriptor) IsAuthorizationRequired() bool {
 	if d.AuthenticationMethod == nil || *d.AuthenticationMethod == "xsuaa" {
 		return true

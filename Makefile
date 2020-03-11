@@ -5,7 +5,7 @@ clean:
 	rm -f cf-html5-apps-repo-cli-plugin
 
 build:
-	go build  
+	go build -ldflags="-s -w" -gcflags "all=-trimpath=${PWD}" 
 
 install:
 	cf install-plugin -f cf-html5-apps-repo-cli-plugin	

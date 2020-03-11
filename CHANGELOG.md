@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support of `--destination` flag for `html5-list`
 - Support of `--destination` flag for `html5-delete`
 - Support custom HTML5 runtime for business service destinations with `HTML5_RUNTIME_URL` 
-  environement variable (default: `https://<tenant>.cpp.<landscape_url>`)
+  environment variable (default: `https://<tenant>.cpp.<landscape_url>`)
+- Support of `--service` flag for `html5-push`  
 
 ### Changed
 - List command `html5-list` now checks if first and the only argument passed is an app-host-id,

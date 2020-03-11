@@ -16,6 +16,7 @@ type UAASecurityDescriptorScope struct {
 
 // UAASecurityDescriptorRoleTemplate XSUAA security descriptor role template
 type UAASecurityDescriptorRoleTemplate struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
+	Name            *string  `json:"name,omitempty"`
+	Description     *string  `json:"description,omitempty"`
+	ScopeReferences []string `json:"scope-references,omitempty"`
 }

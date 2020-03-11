@@ -52,15 +52,22 @@ type CFResourceEntity struct {
 	LastOperation *CFLastOperation `json:"last_operation,omitempty"`
 }
 
+// CFEndpoint business service endpoint
+type CFEndpoint struct {
+	Timeout string `json:"timeout,omitempty"`
+	URL     string `json:"url,omitempty"`
+}
+
 // CFCredentials Cloud Foundry response resource entity credentials
 type CFCredentials struct {
-	Vendor               *string        `json:"vendor,omitempty"`
-	URI                  *string        `json:"uri,omitempty"`
-	GrantType            *string        `json:"grant_type,omitempty"`
-	SapCloudService      *string        `json:"sap.cloud.service,omitempty"`
-	SapCloudServiceAlias *string        `json:"sap.cloud.service.alias,omitempty"`
-	UAA                  *CFUAA         `json:"uaa,omitempty"`
-	HTML5AppsRepo        *HTML5AppsRepo `json:"html5-apps-repo,omitempty"`
+	Vendor               *string                `json:"vendor,omitempty"`
+	URI                  *string                `json:"uri,omitempty"`
+	GrantType            *string                `json:"grant_type,omitempty"`
+	SapCloudService      *string                `json:"sap.cloud.service,omitempty"`
+	SapCloudServiceAlias *string                `json:"sap.cloud.service.alias,omitempty"`
+	UAA                  *CFUAA                 `json:"uaa,omitempty"`
+	HTML5AppsRepo        *HTML5AppsRepo         `json:"html5-apps-repo,omitempty"`
+	Endpoints            *map[string]CFEndpoint `json:"endpoints,omitempty"`
 }
 
 // UnmarshalJSON unmarshals Cloud Foundry service credentials
@@ -103,6 +110,11 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 					credentials.UAA = &CFUAA{}
 				}
 				credentials.UAA.URL = v
+			case "xsappname":
+				if credentials.UAA == nil {
+					credentials.UAA = &CFUAA{}
+				}
+				credentials.UAA.XSAPPNAME = v
 			}
 		case map[string]interface{}:
 			switch key {
@@ -120,6 +132,8 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 							credentials.UAA.IdentityZone = vv
 						case "url":
 							credentials.UAA.URL = vv
+						case "xsappname":
+							credentials.UAA.XSAPPNAME = vv
 						}
 					}
 				}
@@ -134,6 +148,17 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 						}
 					}
 				}
+			case "endpoints":
+				endpoints := make(map[string]CFEndpoint)
+				credentials.Endpoints = &endpoints
+				for endpointsKey, endpointsValue := range v {
+					switch vv := endpointsValue.(type) {
+					case string:
+						endpoints[endpointsKey] = CFEndpoint{URL: vv, Timeout: ""}
+					case map[string]string:
+						endpoints[endpointsKey] = CFEndpoint{URL: vv["url"], Timeout: vv["timeout"]}
+					}
+				}
 			}
 		}
 	}
@@ -146,6 +171,7 @@ type CFUAA struct {
 	ClientSecret string `json:"clientsecret,omitempty"`
 	IdentityZone string `json:"identityzone,omitempty"`
 	URL          string `json:"url,omitempty"`
+	XSAPPNAME    string `json:"xsappname,omitempty"`
 }
 
 // CFLastOperation Cloud Foundry last operation

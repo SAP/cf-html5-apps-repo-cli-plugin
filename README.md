@@ -139,11 +139,11 @@ OPTIONS:
 
 <details><summary>History</summary>
 
-| Version  | Changes                                     |
-|----------|---------------------------------------------|
-| `v1.4.0` | The `--destination` option added            |
-| `v1.2.0` | The `--name` and `--redeploy` options added |
-| `v1.0.0` | Added in `v1.0.0`                           |
+| Version  | Changes                                           |
+|----------|---------------------------------------------------|
+| `v1.4.0` | The `--destination` and `--service` options added |
+| `v1.2.0` | The `--name` and `--redeploy` options added       |
+| `v1.0.0` | Added in `v1.0.0`                                 |
 
 </details>
 
@@ -152,7 +152,7 @@ NAME:
    html5-push - Push HTML5 applications to html5-apps-repo service
 
 USAGE:
-   cf html5-push [-d] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
+   cf html5-push [-d|-s SERVICE_INSTANCE_NAME] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
 
 OPTIONS:
    -APP_HOST_ID              GUID of html5-apps-repo app-host service instance 
@@ -163,7 +163,9 @@ OPTIONS:
    -PATH_TO_APP_FOLDER       One or multiple paths to folders containing 
                              manifest.json and xs-app.json files
    --destination,-d          Create subaccount level destination with
-                             credentials to access HTML5 applications                           
+                             credentials to access HTML5 applications
+   --service,-s              Create subaccount level destination with
+                             credentials of the service instance
    --name,-n                 Use app-host service instance with specified name
    --redeploy,-r             Redeploy HTML5 applications. All applications
                              should be previously deployed to same service 
