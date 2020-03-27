@@ -495,7 +495,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 
 			// Create service instance
 			log.Tracef("Creating service instance for plan %+v\n", *servicePlan)
-			serviceInstance, err := clients.CreateServiceInstance(c.CliConnection, spaceGUID, *servicePlan, nil)
+			serviceInstance, err := clients.CreateServiceInstance(c.CliConnection, spaceGUID, *servicePlan, nil, strings.Replace(sapCloudService, ".", "", -1)+"-")
 			if err != nil {
 				ui.Failed("Could not create service instance for %s app-host plan: %+v", serviceName, err)
 				return Failure
@@ -644,7 +644,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 			return Failure
 		}
 		log.Tracef("Creating service instance of 'xsuaa' service '%s' plan with parameters: %s\n", xsuaaServicePlan.Name, string(securityDescriptorJSON))
-		xsuaaServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *xsuaaServicePlan, &securityDescriptor)
+		xsuaaServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *xsuaaServicePlan, &securityDescriptor, strings.Replace(sapCloudService, ".", "", -1)+"-")
 		if err != nil {
 			ui.Failed("Could not create XSUAA service instance : %+v", err)
 			return Failure

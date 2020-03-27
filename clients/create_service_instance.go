@@ -13,7 +13,7 @@ import (
 )
 
 // CreateServiceInstance create Cloud Foundry service instance
-func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string, servicePlan models.CFServicePlan, parameters interface{}) (*models.CFServiceInstance, error) {
+func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string, servicePlan models.CFServicePlan, parameters interface{}, name string) (*models.CFServiceInstance, error) {
 	var serviceInstance *models.CFServiceInstance
 	var responseObject models.CFResource
 	var errorResponseObject models.CFErrorResponse
@@ -35,7 +35,12 @@ func CreateServiceInstance(cliConnection plugin.CliConnection, spaceGUID string,
 	} else {
 		serviceParameters = ""
 	}
-	body = "'{" + serviceParameters + "\"space_guid\":\"" + spaceGUID + "\",\"name\":\"" + servicePlan.Name + "-" + t + "\",\"service_plan_guid\":\"" + servicePlan.GUID + "\"}'"
+	if name == "" {
+		name = servicePlan.Name + "-" + t
+	} else if len(name) > 1 && name[len(name)-1:] == "-" {
+		name = name + servicePlan.Name + "-" + t
+	}
+	body = "'{" + serviceParameters + "\"space_guid\":\"" + spaceGUID + "\",\"name\":\"" + name + "\",\"service_plan_guid\":\"" + servicePlan.GUID + "\"}'"
 
 	log.Tracef("Making request to: %s\n", url)
 	responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url, "-X", "POST", "-d", body)

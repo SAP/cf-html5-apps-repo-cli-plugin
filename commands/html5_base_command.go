@@ -79,7 +79,7 @@ func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContex
 	// Create instance of 'lite' plan if needed
 	if len(destinationServiceInstances) == 0 {
 		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
-		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil)
+		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil, "")
 		if err != nil {
 			return destinationContext, fmt.Errorf("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
 		}
@@ -220,7 +220,7 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	var appRuntimeServiceInstance *models.CFServiceInstance
 	if len(appRuntimeServiceInstances) == 0 {
 		log.Tracef("Creating service instance of %s service app-runtime plan\n", serviceName)
-		appRuntimeServiceInstance, err = clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *appRuntimeServicePlan, nil)
+		appRuntimeServiceInstance, err = clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *appRuntimeServicePlan, nil, "")
 		if err != nil {
 			return html5Context, errors.New("Could not create service instance of app-runtime plan: " + err.Error())
 		}
