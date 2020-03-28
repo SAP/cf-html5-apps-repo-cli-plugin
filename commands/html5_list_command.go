@@ -163,7 +163,7 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 		return Failure
 	}
 
-	ui.Say("Getting list of HTML5 application available via destinations in org %s / space %s as %s...",
+	ui.Say("Getting list of HTML5 applications available via destinations in org %s / space %s as %s...",
 		terminal.EntityNameColor(context.Org),
 		terminal.EntityNameColor(context.Space),
 		terminal.EntityNameColor(context.Username))
@@ -219,6 +219,21 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 						*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 					if err != nil {
+						// Invalid app-host-id
+						if strings.Index(err.Error(), "HTTP 400") >= 0 {
+							row := make([]string, len(columns))
+							row[0] = terminal.FailureColor("-")
+							row[1] = terminal.FailureColor("-")
+							row[2] = terminal.FailureColor(appHostGUID)
+							row[3] = terminal.FailureColor(serviceName)
+							row[4] = terminal.FailureColor(destination.Name)
+							row[5] = terminal.FailureColor("-")
+							if showUrls {
+								row[6] = terminal.FailureColor("-")
+							}
+							rows = append(rows, row)
+							continue
+						}
 						ui.Failed("Could not get list of applications for app-host-id '%s' of service '%s': %+v", appHostGUID, serviceName, err)
 						return Failure
 					}
@@ -244,14 +259,14 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 				}
 			} else {
 				row := make([]string, len(columns))
-				row[0] = "-"
-				row[1] = "-"
-				row[2] = "-"
-				row[3] = serviceName
-				row[4] = destination.Name
-				row[5] = "-"
+				row[0] = terminal.WarningColor("-")
+				row[1] = terminal.WarningColor("-")
+				row[2] = terminal.WarningColor("-")
+				row[3] = terminal.WarningColor(serviceName)
+				row[4] = terminal.WarningColor(destination.Name)
+				row[5] = terminal.WarningColor("-")
 				if showUrls {
-					row[6] = destination.URL
+					row[6] = terminal.WarningColor(destination.URL)
 				}
 				rows = append(rows, row)
 			}
