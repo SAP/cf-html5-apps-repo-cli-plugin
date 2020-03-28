@@ -151,15 +151,29 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 	}
 
 	for _, appHostName := range appHostNames {
-		// Resolve app-host-id
-		log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
-		serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
-		if err != nil {
-			ui.Failed("Could not get service instance by name: %+v\n", err)
-			return Failure
+		if appHostName[len(appHostName)-1:] == "*" {
+			// Resolve service names by prefix
+			log.Tracef("Resolving service instances by name prefix '%s'\n", appHostName)
+			serviceInstances, err := clients.GetServiceInstancesByNamePrefix(c.CliConnection, context.SpaceID, appHostName)
+			if err != nil {
+				ui.Failed("Could not get service instances by name prefix '%s': %+v\n", appHostName, err)
+				return Failure
+			}
+			for _, serviceInstance := range serviceInstances {
+				log.Tracef("Resolved service instance for name prefix '%s': %+v\n", appHostName, serviceInstance)
+				appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
+			}
+		} else {
+			// Resolve app-host-id
+			log.Tracef("Resolving app-host-id by service instance name '%s'\n", appHostName)
+			serviceInstance, err := clients.GetServiceInstanceByName(c.CliConnection, context.SpaceID, appHostName)
+			if err != nil {
+				ui.Failed("Could not get service instance by name: %+v\n", err)
+				return Failure
+			}
+			log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
+			appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
 		}
-		log.Tracef("Resolved app-host-id is '%s'\n", serviceInstance.GUID)
-		appHostGUIDs = append(appHostGUIDs, serviceInstance.GUID)
 	}
 
 	ui.Say("Deleting service instances with app-host-id %s in org %s / space %s as %s...",
