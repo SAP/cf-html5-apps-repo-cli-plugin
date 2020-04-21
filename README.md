@@ -231,7 +231,7 @@ The following are supported:
   * `DEBUG=1` - enables trace logs with detailed information about currently running steps
   * `HTML5_SERVICE_NAME` - name of the service in CF marketplace (default: `html5-apps-repo`)
   * `HTML5_RUNTIME_URL` - URL of HTML5 runtime to serve business service 
-    destinations (default: `https://<tenant>.cpp.<landscape_url>`)
+    destinations (default: `https://<tenant>.launchpad.<landscape_url>`)
 
 ## Troubleshooting
 

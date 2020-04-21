@@ -250,7 +250,7 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
 	if runtimeURL == "" {
 		uri := *appRuntimeServiceInstanceKey.Credentials.URI
-		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp" + uri[strings.Index(uri, "."):]
+		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".launchpad" + uri[strings.Index(uri, "."):]
 	}
 	html5Context.RuntimeURL = runtimeURL
 
