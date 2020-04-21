@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.4.1] - 2020-04-21
+
+### Changed
+- Default `HTML5_RUNTIME_URL` is changed to `https://<tenant>.launchpad.<landscape_url>` 
+
+### Fixed
+- List destination aplication URLs `html5-list -d -u` now uses `HTML5_RUNTIME_URL` ([#31](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/31))
+
+## [1.4.0] - 2020-03-31
 ### Added
 - Retry for service instance and keys deletion added ([#21](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/21))
 - Error handling for service broker errors added ([#16](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/16)) 
@@ -14,8 +23,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support of `--destination` flag for `html5-list`
 - Support of `--destination` flag for `html5-delete`
 - Support custom HTML5 runtime for business service destinations with `HTML5_RUNTIME_URL` 
-  environment variable (default: `https://<tenant>.cpp.<landscape_url>`)
-- Support of `--service` flag for `html5-push`  
+  environment variable (default: `https://<tenant>.launchpad.<landscape_url>`)
+- Support of `--service` flag for `html5-push`
+- Delete multiple service instances by name prefix with `cf html5-delete -n <name_prefix>*`
+- Show business service destinations that missing or point to not existing `app-host-id` in `cf html5-list -d`  
 
 ### Changed
 - List command `html5-list` now checks if first and the only argument passed is an app-host-id,

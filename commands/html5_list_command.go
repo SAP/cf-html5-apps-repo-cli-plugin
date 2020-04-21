@@ -251,7 +251,7 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 						row[4] = destination.Name
 						row[5] = application.ChangedOn
 						if showUrls {
-							row[6] = destination.URL + "/" + strings.Replace(serviceName, ".", "", -1) +
+							row[6] = html5Context.RuntimeURL + "/" + strings.Replace(serviceName, ".", "", -1) +
 								"." + application.ApplicationName + "-" + application.ApplicationVersion + "/"
 						}
 						rows = append(rows, row)
@@ -630,7 +630,7 @@ func (c *ListCommand) ListApps(appHostGUID *string) ExecutionStatus {
 	} else {
 		// Use service instance with provided app-host-id
 		appHostServiceInstances = []models.CFServiceInstance{
-			models.CFServiceInstance{
+			{
 				GUID: *appHostGUID,
 				Name: "-",
 				LastOperation: models.CFLastOperation{

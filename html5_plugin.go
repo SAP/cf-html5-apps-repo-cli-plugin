@@ -16,8 +16,8 @@ import (
 	"github.com/cloudfoundry/cli/plugin"
 )
 
-// Version is the version of the CLI plugin. It is injected on linking time.
-var Version = "1.4.0"
+// Version is the version of the CLI plugin.
+var Version = "1.4.1"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}
