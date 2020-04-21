@@ -1,62 +1,62 @@
 [![GoDoc](https://godoc.org/github.com/SAP/cf-html5-apps-repo-cli-plugin?status.svg)](https://godoc.org/github.com/SAP/cf-html5-apps-repo-cli-plugin)
 
-# HTML5 Applications Repository CLI Plugin
+# CF HTML5 Applications Repository CLI Plugin
 
 [https://sap.github.io/cf-html5-apps-repo-cli-plugin](https://sap.github.io/cf-html5-apps-repo-cli-plugin/)
 
 ## Description
 
-HTML5 Applications Repository CLI Plugin is a plugin for Cloud Foundry CLI tool 
-that aims to provide easy command line access to APIs exposed by HTML5 Application 
+The CF HTML5 Applications Repository CLI Plugin is a plugin for the Cloud Foundry CLI tool 
+that aims to provide easy command line access to APIs exposed by the HTML5 Application 
 Repository service. 
-It allows to:
+It allows you to:
 
-- inspect HTML5 applications of current space
-- list files of specific HTML5 application
-- view HTML5 applications exposed by business services that are
-  bound to Approuter application
-- download single file, application or the whole bucket of applications
-  uploaded with the same service instance of `html5-apps-repo` service
-- push one or multiple applications using existing service instances
+- Inspect HTML5 applications of current space
+- List files of a specific HTML5 application
+- View HTML5 applications exposed by business services that are
+  bound to the Approuter application
+- Download a single file, application or the whole bucket of applications
+  uploaded with the same service instance of the `html5-apps-repo` service
+- Push one or multiple applications using existing service instances
   of `app-host` plan, or create new ones for you on-the-fly
 
 ## Prerequisites
 
-- [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI (≥6.36.1)
-- [Download](https://golang.org/dl/) and install GO (≥1.11.4)
+- [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI (≥6.36.1).
+- [Download](https://golang.org/dl/) and install GO (≥1.11.4).
 
 ## Installation
 
-If you want to __use__ latest released version and not intend to modify it, you
-can install plugin directly from [Cloud Foundry Community](https://plugins.cloudfoundry.org/#html5-plugin) plugins repository:
+If you want to __use__ the latest released version and don't want to modify it, you
+can install the plugin directly from the [Cloud Foundry Community](https://plugins.cloudfoundry.org/#html5-plugin) plugins repository:
 
 ```bash
 cf install-plugin -r CF-Community "html5-plugin"
 ```
 
 Otherwise, you can build from source code:
-- [Clone or download](https://help.github.com/articles/cloning-a-repository/) current repository to `/src` folder of your default `GOPATH`
-  * On Unix-like systems `$HOME/go/src`
-  * On Windows systems `%USERPROFILE%\go\src`
-- Open terminal/console in the root folder of repository
-- Build sources with `go build`
-- Install CF CLI plugin
-  * On Unix-like systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
-  * On Windows systems `cf install-plugin -f cf-html5-apps-repo-cli-plugin.exe`
+- [Clone or download](https://help.github.com/articles/cloning-a-repository/) the current repository to `/src` folder of your default `GOPATH`:
+  * On Unix-like systems: `$HOME/go/src`
+  * On Windows systems: `%USERPROFILE%\go\src`
+- Open the terminal/console in the root folder of the repository.
+- Build sources with `go build`.
+- Install the CF HTML5 Applications Repository CLI Plugin:
+  * On Unix-like systems: `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
+  * On Windows systems: `cf install-plugin -f cf-html5-apps-repo-cli-plugin.exe`
 
 ## Upgrade
 
-To upgrade version of HTML5 Applications Repository CLI Plugin, you will need to uninstall previous version with command:
+To upgrade the version of the CF HTML5 Applications Repository CLI Plugin, you need to uninstall the previous version with command:
 
 ```bash
 cf uninstall-plugin html5-plugin
 ```
 
-and then install new version as described in Installation section.
+Then install the new version as described in Installation section.
 
 ## Usage
 
-The HTML5 Applications Repository CLI Plugin supports the following commands:
+The CF HTML5 Applications Repository CLI Plugin supports the following commands:
 
 #### html5-list
 
@@ -80,21 +80,21 @@ USAGE:
 
 OPTIONS:
    -APP_NAME          Application name, which file paths should be listed.
-                      If not provided, list of applications will be printed
+                      If not provided, list of applications will be printed.
    -APP_VERSION       Application version, which file paths should be listed.
-                      If not provided, current active version will be used
+                      If not provided, the current active version will be used.
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
                       contains application with specified name and version
    -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
-                      contains application with specified name and version
+                      contains the application with specified name and version.
    --name, -n         Use html5-apps-repo app-host service instance name
                       instead of APP_HOST_ID
    --destination, -d  List HTML5 applications exposed via destinations with 
                       sap.cloud.service and html5-apps-repo.app_host_id 
-                      properties 
+                      properties
    --app, -a          Cloud Foundry application name, which is bound to
                       services that expose UI via html5-apps-repo
-   --url, -u          Show conventional URLs of applications, when accessed 
+   --url, -u          Show conventional URLs of the applications, when accessed 
                       via Cloud Foundry application specified with --app flag
                       or when --destination flag is used                   
 ```
@@ -119,18 +119,18 @@ USAGE:
    cf html5-get PATH|APPKEY|--all [APP_HOST_ID|-n APP_HOST_NAME] [--out OUTPUT]
 
 OPTIONS:
-   --all              Flag that indicates that all applications of specified
+   --all              Flag that indicates that all applications of the specified
                       APP_HOST_ID should be fetched
    --out, -o          Output file (for single file) or output directory (for
                       application). By default, standard output and current
-                      working directory
+                      working directory.
    --name, -n         Use html5-apps-repo app-host service instance name 
                       instead of APP_HOST_ID                   
    -APPKEY            Application name and version
    -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
                       contains application with specified name and version
    -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
-                      contains application with specified name and version                   
+                      contains the application with specified name and version                   
    -PATH              Application file path, starting 
                       from /<appName-appVersion>
 ```
@@ -168,8 +168,8 @@ OPTIONS:
                              credentials of the service instance
    --name,-n                 Use app-host service instance with specified name
    --redeploy,-r             Redeploy HTML5 applications. All applications
-                             should be previously deployed to same service 
-                             instance
+                             should be previously deployed to the same service 
+                             instance.
 ```
 
 #### html5-delete
@@ -213,7 +213,7 @@ OPTIONS:
 
 ```
 NAME:
-   html5-info - Get size limit and status of app-host service instances
+   html5-info - Get the size limit and status of app-host service instances
 
 USAGE:
    cf html5-info [APP_HOST_ID|-n APP_HOST_NAME ...]
@@ -226,7 +226,7 @@ OPTIONS:
 
 ## Configuration
 
-The configuration of the HTML5 CLI Plugin is done via environment variables.
+The configuration of the CF HTML5 Applications Repository CLI Plugin is done by using environment variables.
 The following are supported:
   * `DEBUG=1` - enables trace logs with detailed information about currently running steps
   * `HTML5_SERVICE_NAME` - name of the service in CF marketplace (default: `html5-apps-repo`)
@@ -237,19 +237,19 @@ The following are supported:
 
 #### Services and Service Keys
 
-In order to work with HTML5 Application Repository API, HTML5 Applications 
+In order to work with HTML5 Application Repository API, the CF HTML5 Applications 
 Repository CLI Plugin is required to send JWT with every request. To obtain 
-it HTML5 Applications Repository CLI Plugin creates temporarry artifacts, 
+it, the CF HTML5 Applications Repository CLI Plugin creates temporary artifacts, 
 such as service instances of `html5-apps-repo` service and service keys for
-these service instances. If one of the flows invoked by HTML5 Applications
+these service instances. If one of the flows invoked by the CF HTML5 Applications
 Repository CLI Plugin fails in the middle, these artifacts may remain
 in the current space. 
 
 ## Limitations
 
-Currently, you can't use HTML5 Applications Repository CLI Plugin with 
+Currently, you can't use the CF HTML5 Applications Repository CLI Plugin with 
 global `-v` flag due to limitations of `cf curl` that is used internally
-by plugin.
+by the plugin.
 
 ## How to obtain support
 
@@ -258,3 +258,4 @@ If you need any support, have any question or have found a bug, please report it
 ## License
 
 This project is licensed under the Apache Software License, v. 2 except as noted otherwise in the [LICENSE](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/blob/master/LICENSE) file.
+
