@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"cf-html5-apps-repo-cli-plugin/cache"
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
@@ -17,8 +18,19 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 	var err error
 	var nextURL *string
 
+	space, err := cliConnection.GetCurrentSpace()
+	if err != nil {
+		return nil, err
+	}
+
+	if cachedServices, ok := cache.Get("GetServices:" + space.Guid); ok {
+		log.Tracef("Returning cached list of services\n")
+		services = cachedServices.([]models.CFService)
+		return services, nil
+	}
+
 	services = make([]models.CFService, 0)
-	firstURL := "/v2/services"
+	firstURL := "/v2/spaces/" + space.Guid + "/services"
 	nextURL = &firstURL
 
 	for nextURL != nil {
@@ -38,6 +50,8 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 		}
 		nextURL = responseObject.NextURL
 	}
+
+	cache.Set("GetServices:"+space.Guid, services)
 
 	return services, nil
 }

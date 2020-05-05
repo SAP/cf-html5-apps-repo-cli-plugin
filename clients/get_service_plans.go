@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"cf-html5-apps-repo-cli-plugin/cache"
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
@@ -16,6 +17,12 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 	var responseStrings []string
 	var err error
 	var nextURL *string
+
+	if cachedServicePlans, ok := cache.Get("GetServicePlans:" + serviceGUID); ok {
+		log.Tracef("Returning cached list of service plans\n")
+		servicePlans = cachedServicePlans.([]models.CFServicePlan)
+		return servicePlans, nil
+	}
 
 	servicePlans = make([]models.CFServicePlan, 0)
 	firstURL := "/v2/service_plans?q=service_guid:" + serviceGUID
@@ -38,6 +45,8 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 		}
 		nextURL = responseObject.NextURL
 	}
+
+	cache.Set("GetServicePlans:"+serviceGUID, servicePlans)
 
 	return servicePlans, nil
 }

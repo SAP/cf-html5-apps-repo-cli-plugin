@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Print time in trace logs
 
+### Performance
+- In-memory cache for services and service plans
+
 ## [1.4.1] - 2020-04-21
 
 ### Changed
