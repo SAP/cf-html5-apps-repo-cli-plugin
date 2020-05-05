@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Debug true if environment variable DEBUG is set to 1
@@ -75,6 +76,7 @@ func Println(v ...interface{}) {
 // Trace print value if Debug flag is on
 func Trace(v ...interface{}) {
 	if Debug {
+		Print(time.Now().Format("15:04:05.000000") + " ")
 		Print(v...)
 	}
 }
@@ -82,6 +84,7 @@ func Trace(v ...interface{}) {
 // Tracef print formatted value if Debug flag is on
 func Tracef(format string, v ...interface{}) {
 	if Debug {
+		Print(time.Now().Format("15:04:05.000000") + " ")
 		Printf(format, v...)
 	}
 }
@@ -89,6 +92,7 @@ func Tracef(format string, v ...interface{}) {
 // Traceln print value line if Debug flag is on
 func Traceln(v ...interface{}) {
 	if Debug {
+		Print(time.Now().Format("15:04:05.000000") + " ")
 		Println(v...)
 	}
 }
