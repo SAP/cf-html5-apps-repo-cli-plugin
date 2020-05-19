@@ -1,22 +1,52 @@
 package commands
 
 import (
+	"cf-html5-apps-repo-cli-plugin/cache"
 	clients "cf-html5-apps-repo-cli-plugin/clients"
 	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/cloudfoundry/cli/plugin"
 )
 
 const (
 	slash = string(os.PathSeparator)
 )
 
+var configFilePath = homeDir() + slash +
+	".cf" + slash +
+	"plugins" + slash +
+	"html5-plugin-config.json"
+
 // HTML5Command base struct for HTML5 repository operations
 type HTML5Command struct {
 	BaseCommand
+}
+
+// Initialize initializes the command with the specified name and CLI connection
+func (c *HTML5Command) Initialize(name string, cliConnection plugin.CliConnection) {
+	log.Tracef("Initializing command '%s'\n", name)
+	c.InitializeBase(name, cliConnection)
+	if os.Getenv("HTML5_CACHE") == "1" {
+		loadCache()
+	} else {
+		clearCache()
+	}
+}
+
+// Dispose disposes command and saves cache if needed
+func (c *HTML5Command) Dispose(name string) {
+	log.Tracef("Disposing command '%s'\n", name)
+	c.DisposeBase(name)
+	if os.Getenv("HTML5_CACHE") == "1" {
+		saveCache()
+	}
 }
 
 // GetDestinationContext get destination context
@@ -143,6 +173,13 @@ func (c *HTML5Command) CleanDestinationContext(destinationContext DestinationCon
 
 // GetHTML5Context get HTML5 context
 func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
+	log.Tracef("Getting HTML5 context\n")
+
+	// Try to load context from cache
+	if html5ContextFromCache, ok := cache.Get("GetHTML5Context:" + context.OrgID + ":" + context.SpaceID); ok {
+		log.Tracef("Returning cached HTML5 context\n")
+		return html5ContextFromCache.(HTML5Context), nil
+	}
 
 	// Context to return
 	html5Context := HTML5Context{}
@@ -228,31 +265,51 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	}
 	html5Context.HTML5AppRuntimeServiceInstance = appRuntimeServiceInstance
 
-	// Create service key
-	log.Tracef("Creating service key for %s service\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
-	appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID)
+	// Get service key
+	log.Tracef("Getting list of service keys for service %s\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
+	appRuntimeServiceInstanceKeys, err := clients.GetServiceKeys(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID)
 	if err != nil {
-		return html5Context, errors.New("Could not create service key of " +
+		return html5Context, errors.New("Could not get service keys of " +
 			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
 	}
-	html5Context.HTML5AppRuntimeServiceInstanceKey = appRuntimeServiceInstanceKey
+	if len(appRuntimeServiceInstanceKeys) > 0 {
+		log.Tracef("Found %d service keys for service %s, using: %+v\n",
+			len(appRuntimeServiceInstanceKeys),
+			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name,
+			appRuntimeServiceInstanceKeys[0])
+		html5Context.HTML5AppRuntimeServiceInstanceKey = &appRuntimeServiceInstanceKeys[0]
+	}
+
+	// Create service key if needed
+	if html5Context.HTML5AppRuntimeServiceInstanceKey == nil {
+		log.Tracef("Creating service key for %s service\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
+		appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID)
+		if err != nil {
+			return html5Context, errors.New("Could not create service key of " +
+				appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
+		}
+		html5Context.HTML5AppRuntimeServiceInstanceKey = appRuntimeServiceInstanceKey
+	}
 
 	// Get app-runtime access token
-	log.Tracef("Getting token for service key %s\n", appRuntimeServiceInstanceKey.Name)
-	appRuntimeServiceInstanceKeyToken, err := clients.GetToken(appRuntimeServiceInstanceKey.Credentials)
+	log.Tracef("Getting token for service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name)
+	appRuntimeServiceInstanceKeyToken, err := clients.GetToken(html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials)
 	if err != nil {
 		return html5Context, errors.New("Could not obtain access token: " + err.Error())
 	}
 	html5Context.HTML5AppRuntimeServiceInstanceKeyToken = appRuntimeServiceInstanceKeyToken
-	log.Tracef("Access token for service key %s: %s\n", appRuntimeServiceInstanceKey.Name, appRuntimeServiceInstanceKeyToken)
+	log.Tracef("Access token for service key %s: %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name, appRuntimeServiceInstanceKeyToken)
 
 	// Runtime URL
 	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
 	if runtimeURL == "" {
-		uri := *appRuntimeServiceInstanceKey.Credentials.URI
-		runtimeURL = "https://" + appRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".launchpad" + uri[strings.Index(uri, "."):]
+		uri := *html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI
+		runtimeURL = "https://" + html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp" + uri[strings.Index(uri, "."):]
 	}
 	html5Context.RuntimeURL = runtimeURL
+
+	// Fill cache
+	cache.Set("GetHTML5Context:"+context.OrgID+":"+context.SpaceID, html5Context)
 
 	return html5Context, nil
 }
@@ -260,26 +317,29 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 // CleanHTML5Context clean-up temporary service keys and service instances
 // created to form HTML5 context
 func (c *HTML5Command) CleanHTML5Context(html5Context HTML5Context) error {
-	var err error
-	// Delete service key
-	if html5Context.HTML5AppRuntimeServiceInstanceKey != nil {
-		log.Tracef("Deleting service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name)
-		err = clients.DeleteServiceKey(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstanceKey.GUID, maxRetryCount)
-		if err != nil {
-			return errors.New("Could not delete service key" + html5Context.HTML5AppRuntimeServiceInstanceKey.Name + ": " + err.Error())
+	if os.Getenv("HTML5_CACHE") == "1" {
+		log.Tracef("Preserving HTML5 context for future use with cache\n")
+	} else {
+		var err error
+		// Delete service key
+		if html5Context.HTML5AppRuntimeServiceInstanceKey != nil {
+			log.Tracef("Deleting service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name)
+			err = clients.DeleteServiceKey(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstanceKey.GUID, maxRetryCount)
+			if err != nil {
+				return errors.New("Could not delete service key" + html5Context.HTML5AppRuntimeServiceInstanceKey.Name + ": " + err.Error())
+			}
+		}
+
+		// Delete instance of app-runtime if needed
+		if html5Context.HTML5AppRuntimeServiceInstance != nil {
+			log.Tracef("Deleting service instance %s\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
+			err = clients.DeleteServiceInstance(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstance.GUID, maxRetryCount)
+			if err != nil {
+				return errors.New("Could not delete service instance of app-runtime plan: " + err.Error())
+			}
+			log.Tracef("Service instance %s successfully deleted\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
 		}
 	}
-
-	// Delete instance of app-runtime if needed
-	if html5Context.HTML5AppRuntimeServiceInstance != nil {
-		log.Tracef("Deleting service instance %s\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
-		err = clients.DeleteServiceInstance(c.CliConnection, html5Context.HTML5AppRuntimeServiceInstance.GUID, maxRetryCount)
-		if err != nil {
-			return errors.New("Could not delete service instance of app-runtime plan: " + err.Error())
-		}
-		log.Tracef("Service instance %s successfully deleted\n", html5Context.HTML5AppRuntimeServiceInstance.Name)
-	}
-
 	return nil
 }
 
@@ -332,4 +392,192 @@ func (i *stringSlice) String() string {
 func (i *stringSlice) Set(value string) error {
 	*i = append(*i, value)
 	return nil
+}
+
+func homeDir() string {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln("Could not get user home directory")
+	}
+	return dir
+}
+
+func loadCache() error {
+	if _, err := os.Stat(configFilePath); err == nil {
+		var config map[string]map[string]json.RawMessage
+		var data []byte
+		var err error
+
+		// Read configuration file
+		data, err = ioutil.ReadFile(configFilePath)
+		if err != nil {
+			log.Fatalln("Could not read configuration file")
+			return err
+		}
+
+		// Unmarshal configuration file
+		err = json.Unmarshal(data, &config)
+		if err != nil {
+			log.Fatalln("Could not unmarshal configuration file")
+			return err
+		}
+
+		// Lookup for cache
+		if cacheConfiguration, ok := config["Cache"]; ok {
+			// Load known cache items
+			for key, value := range cacheConfiguration {
+				if strings.Index(key, "GetHTML5Context:") == 0 {
+					var context HTML5Context
+					err = json.Unmarshal(value, &context)
+					if err != nil {
+						log.Fatalln("Could not HMTL5 context from configuration file cache")
+					}
+					cache.Set(key, context)
+				} else if strings.Index(key, "GetServices:") == 0 {
+					var services []models.CFService
+					err = json.Unmarshal(value, &services)
+					if err != nil {
+						log.Fatalln("Could not HMTL5 services from configuration file cache")
+					}
+					cache.Set(key, services)
+				} else if strings.Index(key, "GetServicePlans:") == 0 {
+					var servicePlans []models.CFServicePlan
+					err = json.Unmarshal(value, &servicePlans)
+					if err != nil {
+						log.Fatalln("Could not HMTL5 service plans from configuration file cache")
+					}
+					cache.Set(key, servicePlans)
+				}
+			}
+		}
+
+		return nil
+	} else if os.IsNotExist(err) {
+		log.Traceln("Configuration file not found. Using defaults")
+		return err
+	} else {
+		log.Fatalln("Could not check existence of configuration file")
+		return err
+	}
+}
+
+func saveCache() error {
+	if _, err := os.Stat(configFilePath); err == nil {
+		var config map[string]interface{}
+		var data []byte
+		var err error
+
+		log.Traceln("Configuration file found. Updating cache")
+
+		// Read configuration file
+		data, err = ioutil.ReadFile(configFilePath)
+		if err != nil {
+			log.Fatalln("Could not read configuration file")
+			return err
+		}
+
+		// Unmarshal configuration file
+		err = json.Unmarshal(data, &config)
+		if err != nil {
+			log.Fatalln("Could not unmarshal configuration file")
+			return err
+		}
+
+		// Update cache
+		config["Cache"] = cache.All()
+
+		// Marshal configuration file
+		data, err = json.Marshal(config)
+		if err != nil {
+			log.Fatalln("Could not marshal configuration file")
+			return err
+		}
+
+		// Write configuration file
+		err = ioutil.WriteFile(configFilePath, data, 0644)
+		if err != nil {
+			log.Fatalln("Could not write configuration file")
+			return err
+		}
+
+		return nil
+	} else if os.IsNotExist(err) {
+		var config map[string]interface{}
+		var data []byte
+		var err error
+
+		log.Traceln("Configuration file not found. Creating new one")
+
+		// Create configuration
+		config = make(map[string]interface{})
+		config["Cache"] = cache.All()
+
+		// Marshal configuration file
+		data, err = json.Marshal(config)
+		if err != nil {
+			log.Fatalln("Could not marshal configuration file")
+			return err
+		}
+
+		// Write configuration file
+		err = ioutil.WriteFile(configFilePath, data, 0644)
+		if err != nil {
+			log.Fatalln("Could not write configuration file")
+			return err
+		}
+
+		return nil
+	} else {
+		log.Fatalln("Could not check existence of configuration file")
+		return err
+	}
+}
+
+func clearCache() error {
+	if _, err := os.Stat(configFilePath); err == nil {
+		var config map[string]map[string]interface{}
+		var data []byte
+		var err error
+
+		log.Traceln("Configuration file found. Clearing cache")
+
+		// Read configuration file
+		data, err = ioutil.ReadFile(configFilePath)
+		if err != nil {
+			log.Fatalln("Could not read configuration file")
+			return err
+		}
+
+		// Unmarshal configuration file
+		err = json.Unmarshal(data, &config)
+		if err != nil {
+			log.Fatalln("Could not unmarshal configuration file")
+			return err
+		}
+
+		// Update cache
+		config["Cache"] = make(map[string]interface{})
+
+		// Marshal configuration file
+		data, err = json.Marshal(config)
+		if err != nil {
+			log.Fatalln("Could not marshal configuration file")
+			return err
+		}
+
+		// Write configuration file
+		err = ioutil.WriteFile(configFilePath, data, 0644)
+		if err != nil {
+			log.Fatalln("Could not write configuration file")
+			return err
+		}
+
+		return nil
+	} else if os.IsNotExist(err) {
+		log.Traceln("Configuration file does not exist. No cache to crear")
+		return nil
+	} else {
+		log.Fatalln("Could not check existence of configuration file")
+		return err
+	}
 }

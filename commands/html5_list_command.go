@@ -208,7 +208,13 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 	// Iterate over business service destinations
 	for _, destination := range destinations {
 		if serviceName, ok := destination.Properties["sap.cloud.service"]; ok {
-			if appHostGUIDs, ok := destination.Properties["html5-apps-repo.app_host_id"]; ok {
+			var ok bool
+			var appHostGUIDs string
+			appHostGUIDs, ok = destination.Properties["html5-apps-repo.app_host_id"]
+			if !ok {
+				appHostGUIDs, ok = destination.Properties["app_host_id"]
+			}
+			if ok {
 				for _, appHostGUID := range strings.Split(appHostGUIDs, ",") {
 					appHostGUID = strings.Trim(appHostGUID, " ")
 					log.Tracef("Getting list of applications for app-host-id '%s' of service '%s' defined in destination with name '%s'\n",
@@ -257,18 +263,6 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 						rows = append(rows, row)
 					}
 				}
-			} else {
-				row := make([]string, len(columns))
-				row[0] = terminal.WarningColor("-")
-				row[1] = terminal.WarningColor("-")
-				row[2] = terminal.WarningColor("-")
-				row[3] = terminal.WarningColor(serviceName)
-				row[4] = terminal.WarningColor(destination.Name)
-				row[5] = terminal.WarningColor("-")
-				if showUrls {
-					row[6] = terminal.WarningColor(destination.URL)
-				}
-				rows = append(rows, row)
 			}
 		}
 	}

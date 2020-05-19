@@ -14,3 +14,8 @@ func Get(key string) (interface{}, bool) {
 func Set(key string, value interface{}) {
 	cacheMap[key] = value
 }
+
+// All dump cache
+func All() map[string]interface{} {
+	return cacheMap
+}

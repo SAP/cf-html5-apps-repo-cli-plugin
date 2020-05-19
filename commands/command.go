@@ -9,4 +9,5 @@ type Command interface {
 	GetPluginCommand() plugin.Command
 	Initialize(name string, cliConnection plugin.CliConnection)
 	Execute(args []string) ExecutionStatus
+	Dispose(name string)
 }

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"cf-html5-apps-repo-cli-plugin/log"
 	"fmt"
 
 	"github.com/cloudfoundry/cli/cf/terminal"
@@ -20,16 +19,25 @@ type BaseCommand struct {
 	CliConnection plugin.CliConnection
 }
 
-// Initialize initializes the command with the specified name and CLI connection
+// Initialize default initialization method which may be overriden in more specific commands
 func (c *BaseCommand) Initialize(name string, cliConnection plugin.CliConnection) {
-	log.Tracef("Initializing command '%s'\n", name)
-	c.InitializeAll(name, cliConnection)
+	c.InitializeBase(name, cliConnection)
 }
 
-// InitializeAll initializes the command with the specified name and CLI connection.
-func (c *BaseCommand) InitializeAll(name string, cliConnection plugin.CliConnection) {
+// InitializeBase initializes the command with the specified name and CLI connection.
+func (c *BaseCommand) InitializeBase(name string, cliConnection plugin.CliConnection) {
 	c.Name = name
 	c.CliConnection = cliConnection
+}
+
+// Dispose default dispose method which may be overriden in more specific commands
+func (c *BaseCommand) Dispose(name string) {
+	c.DisposeBase(name)
+}
+
+// DisposeBase dispose command
+func (c *BaseCommand) DisposeBase(_ string) {
+	// Do nothing
 }
 
 // Context holding the username, Org and Space of the current used

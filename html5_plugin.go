@@ -17,7 +17,7 @@ import (
 )
 
 // Version is the version of the CLI plugin.
-var Version = "1.4.1"
+var Version = "1.4.2"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}
@@ -45,6 +45,8 @@ func (p *HTML5Plugin) Run(cliConnection plugin.CliConnection, args []string) {
 	status := command.Execute(args[1:])
 	if status == commands.Failure {
 		os.Exit(1)
+	} else {
+		command.Dispose(command.GetPluginCommand().Name)
 	}
 }
 

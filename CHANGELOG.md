@@ -6,11 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.4.2] - 2020-05-19
 ### Added
+- Support of multiple destinations pointing to same business service in `html5-list -d` (MTA deployment flow)
 - Print time in trace logs
+
+### Changed
+- Default `HTML5_RUNTIME_URL` is changed back to `https://<tenant>.cpp.<landscape_url>` 
 
 ### Performance
 - In-memory cache for services and service plans
+- Persisted cache with `HTML5_CACHE=1`
 
 ## [1.4.1] - 2020-04-21
 

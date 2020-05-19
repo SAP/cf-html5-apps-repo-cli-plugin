@@ -229,9 +229,12 @@ OPTIONS:
 The configuration of the CF HTML5 Applications Repository CLI Plugin is done by using environment variables.
 The following are supported:
   * `DEBUG=1` - enables trace logs with detailed information about currently running steps
+  * `HTML5_CACHE=1` - enables persisted cache. Disabled by default. Should be enabled only for sequential
+     execution of the CF HTML5 Applications Repository CLI Plugin commands in the same context 
+     (org/space/user) during short period of time (less than 12 hours)
   * `HTML5_SERVICE_NAME` - name of the service in CF marketplace (default: `html5-apps-repo`)
   * `HTML5_RUNTIME_URL` - URL of HTML5 runtime to serve business service 
-    destinations (default: `https://<tenant>.launchpad.<landscape_url>`)
+    destinations (default: `https://<tenant>.cpp.<landscape_url>`)
 
 ## Troubleshooting
 
