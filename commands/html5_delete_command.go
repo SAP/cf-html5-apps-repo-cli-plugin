@@ -139,7 +139,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 // DeleteServiceInstances delete service instances by app-host-ids,
 // including all dependent service keys
 func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string, deleteDestinations bool) ExecutionStatus {
-	log.Tracef("Deleting service instances by app-host-ids: %v\n", appHostGUIDs)
+	log.Tracef("Deleting service instances by IDs: %v\n", appHostGUIDs)
 	var err error
 
 	// Get context
@@ -176,11 +176,92 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		}
 	}
 
-	ui.Say("Deleting service instances with app-host-id %s in org %s / space %s as %s...",
+	msg := ""
+	if deleteDestinations {
+		msg = "and associated destinations "
+	}
+
+	ui.Say("Deleting service instances with IDs %s %sin org %s / space %s as %s...",
 		terminal.EntityNameColor(strings.Join(appHostGUIDs, ", ")),
+		msg,
 		terminal.EntityNameColor(context.Org),
 		terminal.EntityNameColor(context.Space),
 		terminal.EntityNameColor(context.Username))
+
+	// Delete destinatons if needed
+	if deleteDestinations {
+		// Create destination context
+		log.Tracef("Getting destination service context\n")
+		destinationContext, err := c.GetDestinationContext(context)
+		if err != nil {
+			ui.Failed("Could not create destination context: %+v\n", err)
+			return Failure
+		}
+
+		// List destinations
+		destinations, err := clients.ListSubaccountDestinations(
+			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+			destinationContext.DestinationServiceInstanceKeyToken)
+
+		// Find relevant destinations and delete them
+		sapCloudServices := make([]string, 0)
+		for _, destination := range destinations {
+			val, ok := destination.Properties["html5-apps-repo.app_host_id"]
+			if !ok {
+				val, ok = destination.Properties["app_host_id"]
+			}
+			if ok {
+				val = strings.Trim(val, " ")
+				for _, appHostGUID := range appHostGUIDs {
+					if val == appHostGUID {
+						log.Tracef("Deleting destination '%s'\n", destination.Name)
+						err = clients.DeleteSubaccountDestination(
+							*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+							destinationContext.DestinationServiceInstanceKeyToken,
+							destination.Name)
+						if err != nil {
+							ui.Failed("Could not delete destination '%s': %+v\n", destination.Name, err)
+							return Failure
+						}
+						if sapCloudService, ok := destination.Properties["sap.cloud.service"]; ok {
+							log.Tracef("Adding sap.cloud.service '%s' to the deletion list\n", sapCloudService)
+							sapCloudServices = append(sapCloudServices, sapCloudService)
+						}
+					}
+				}
+			}
+		}
+
+		// Find destinations with same sap.cloud.service value as deleted destinations and delete them
+		if len(sapCloudServices) > 0 {
+			for _, destination := range destinations {
+				if val, ok := destination.Properties["sap.cloud.service"]; ok {
+					for _, sapCloudService := range sapCloudServices {
+						if val == sapCloudService {
+							log.Tracef("Deleting destination '%s' with sap.cloud.service '%s'\n", destination.Name, val)
+							err = clients.DeleteSubaccountDestination(
+								*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+								destinationContext.DestinationServiceInstanceKeyToken,
+								destination.Name)
+							if err != nil {
+								ui.Failed("Could not delete destination '%s' with sap.cloud.service '%s': %+v\n",
+									destination.Name, val, err)
+								return Failure
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+
+		// Clen-up destination context
+		err = c.CleanDestinationContext(destinationContext)
+		if err != nil {
+			ui.Failed("Could not clean destination context: %+v\n", err)
+			return Failure
+		}
+	}
 
 	// Delete service instances
 	for _, appHostGUID := range appHostGUIDs {
@@ -204,52 +285,15 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		// Delete service instance
 		err = clients.DeleteServiceInstance(c.CliConnection, appHostGUID, maxRetryCount)
 		if err != nil {
-			ui.Failed("Could not delete service instance %s: %+v\n", appHostGUID, err)
-			return Failure
-		}
-		log.Tracef("Service instance %s successfully deleted\n", appHostGUID)
-	}
-
-	// Delete destinatons if needed
-	if deleteDestinations {
-		// Create destination context
-		log.Tracef("Getting destination service context\n")
-		destinationContext, err := c.GetDestinationContext(context)
-		if err != nil {
-			ui.Failed("Could not create destination context: %+v\n", err)
-			return Failure
-		}
-
-		// List destinations
-		destinations, err := clients.ListSubaccountDestinations(
-			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-			destinationContext.DestinationServiceInstanceKeyToken)
-
-		// Find relevant destinations and delete them
-		for _, destination := range destinations {
-			if val, ok := destination.Properties["html5-apps-repo.app_host_id"]; ok {
-				val = strings.Trim(val, " ")
-				for _, appHostGUID := range appHostGUIDs {
-					if val == appHostGUID {
-						log.Tracef("Deleting destination '%s'\n", destination.Name)
-						err = clients.DeleteSubaccountDestination(
-							*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-							destinationContext.DestinationServiceInstanceKeyToken,
-							destination.Name)
-						if err != nil {
-							ui.Failed("Could not delete destination '%s': %+v\n", destination.Name, err)
-							return Failure
-						}
-					}
-				}
+			if deleteDestinations {
+				log.Tracef("Service instance %s was not deleted (probably not found)\n", appHostGUID)
+				ui.Warn("[WARNING] Service instance with ID = %s was not deleted (probably not found)\n", appHostGUID)
+			} else {
+				ui.Failed("Could not delete service instance %s: %+v\n", appHostGUID, err)
+				return Failure
 			}
-		}
+		} else {
 
-		// Clen-up destination context
-		err = c.CleanDestinationContext(destinationContext)
-		if err != nil {
-			ui.Failed("Could not clean destination context: %+v\n", err)
-			return Failure
 		}
 	}
 

@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.4.3] - 2020-06-03
+### Changed
+- Command `html5-delete -d` will not fail, if service instance with provided `app-host-id`
+  does not exist, but delete destination and all other destinations having same value of
+  `sap.cloud.service` property
 
 ## [1.4.2] - 2020-05-19
 ### Added
