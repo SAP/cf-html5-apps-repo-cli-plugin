@@ -1,6 +1,9 @@
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // CFResponse Cloud Foundry response
 type CFResponse struct {
@@ -155,8 +158,22 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 					switch vv := endpointsValue.(type) {
 					case string:
 						endpoints[endpointsKey] = CFEndpoint{URL: vv, Timeout: ""}
-					case map[string]string:
-						endpoints[endpointsKey] = CFEndpoint{URL: vv["url"], Timeout: vv["timeout"]}
+					case map[string]interface{}:
+						var url string
+						var timeout string
+						for endpointKey, endpointValue := range vv {
+							switch vvv := endpointValue.(type) {
+							case string:
+								if endpointKey == "url" {
+									url = vvv
+								}
+							case float64:
+								if endpointKey == "timeout" {
+									timeout = fmt.Sprintf("%g", vvv)
+								}
+							}
+						}
+						endpoints[endpointsKey] = CFEndpoint{URL: url, Timeout: timeout}
 					}
 				}
 			}
