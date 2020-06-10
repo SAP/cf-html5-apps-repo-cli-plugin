@@ -57,6 +57,8 @@ func (dc *DestinationConfiguration) UnmarshalJSON(data []byte) error {
 			dc.URL = value
 		case "Authentication":
 			dc.Authentication = value
+		case "ProxyType":
+			dc.ProxyType = value
 		case "tokenServiceURL":
 			dc.TokenServiceURL = value
 		case "TokenServiceURLType":
