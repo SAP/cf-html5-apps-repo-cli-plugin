@@ -39,6 +39,7 @@ Otherwise, you can build from source code:
   * On Unix-like systems: `$HOME/go/src`
   * On Windows systems: `%USERPROFILE%\go\src`
 - Open the terminal/console in the root folder of the repository.
+- Set environment variable `GO111MODULE=off`
 - Build sources with `go build`.
 - Install the CF HTML5 Applications Repository CLI Plugin:
   * On Unix-like systems: `cf install-plugin -f cf-html5-apps-repo-cli-plugin`
