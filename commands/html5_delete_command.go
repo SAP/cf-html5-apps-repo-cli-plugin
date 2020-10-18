@@ -4,6 +4,7 @@ import (
 	clients "cf-html5-apps-repo-cli-plugin/clients"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
+	"encoding/json"
 	"flag"
 	"strings"
 
@@ -210,6 +211,25 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 			if !ok {
 				val, ok = destination.Properties["app_host_id"]
 			}
+			if !ok {
+				var html5AppsRepo string
+				if html5AppsRepo, ok = destination.Properties["html5-apps-repo"]; ok &&
+					len(html5AppsRepo) > 0 && html5AppsRepo[0:1] == "{" {
+
+					var html5RepoMap map[string]interface{}
+					var appHostGUIDsInterface interface{}
+					err = json.Unmarshal([]byte(html5AppsRepo), &html5RepoMap)
+					if err != nil {
+						log.Tracef("Could not parse 'hmtl5-apps-repo' property of destination '%s'", destination)
+						ok = false
+					} else if appHostGUIDsInterface, ok = html5RepoMap["app_host_id"]; ok {
+						switch v := appHostGUIDsInterface.(type) {
+						case string:
+							val = v
+						}
+					}
+				}
+			}
 			if ok {
 				val = strings.Trim(val, " ")
 				for _, appHostGUID := range appHostGUIDs {
@@ -287,7 +307,6 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		if err != nil {
 			if deleteDestinations {
 				log.Tracef("Service instance %s was not deleted (probably not found)\n", appHostGUID)
-				ui.Warn("[WARNING] Service instance with ID = %s was not deleted (probably not found)\n", appHostGUID)
 			} else {
 				ui.Failed("Could not delete service instance %s: %+v\n", appHostGUID, err)
 				return Failure
