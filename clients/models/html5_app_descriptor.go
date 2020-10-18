@@ -36,8 +36,14 @@ func (s *HTML5AppDescriptorRouteScope) UnmarshalJSON(data []byte) error {
 	switch value := scope.(type) {
 	case string:
 		s.Default = []string{value}
-	case []string:
-		s.Default = value
+	case []interface{}:
+		s.Default = make([]string, 0)
+		for _, item := range value {
+			switch itemValue := item.(type) {
+			case string:
+				s.Default = append(s.Default, itemValue)
+			}
+		}
 	case map[string]interface{}:
 		if value["default"] != nil {
 			switch defaultValue := value["default"].(type) {
@@ -53,8 +59,14 @@ func (s *HTML5AppDescriptorRouteScope) UnmarshalJSON(data []byte) error {
 			switch verbValue := value[verb].(type) {
 			case string:
 				s.Verbs[verb] = []string{verbValue}
-			case []string:
-				s.Verbs[verb] = verbValue
+			case []interface{}:
+				s.Verbs[verb] = make([]string, 0)
+				for _, item := range verbValue {
+					switch itemValue := item.(type) {
+					case string:
+						s.Verbs[verb] = append(s.Verbs[verb], itemValue)
+					}
+				}
 			}
 		}
 	}
