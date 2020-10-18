@@ -11,12 +11,14 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry/cli/plugin"
 )
 
 const (
-	slash = string(os.PathSeparator)
+	slash        = string(os.PathSeparator)
+	cacheTimeout = 60 * 60
 )
 
 var configFilePath = homeDir() + slash +
@@ -137,7 +139,7 @@ func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContex
 	}
 	log.Tracef("Access token for service key %s: %s\n",
 		destinationServiceInstanceKey.Name,
-		destinationServiceInstanceKeyToken)
+		log.Sensitive{Data: destinationServiceInstanceKeyToken})
 	destinationContext.DestinationServiceInstanceKeyToken = destinationServiceInstanceKeyToken
 
 	return destinationContext, nil
@@ -298,7 +300,9 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 		return html5Context, errors.New("Could not obtain access token: " + err.Error())
 	}
 	html5Context.HTML5AppRuntimeServiceInstanceKeyToken = appRuntimeServiceInstanceKeyToken
-	log.Tracef("Access token for service key %s: %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name, appRuntimeServiceInstanceKeyToken)
+	log.Tracef("Access token for service key %s: %s\n",
+		html5Context.HTML5AppRuntimeServiceInstanceKey.Name,
+		log.Sensitive{Data: appRuntimeServiceInstanceKeyToken})
 
 	// Runtime URL
 	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
@@ -422,6 +426,31 @@ func loadCache() error {
 			return err
 		}
 
+		// Check timestamp
+		if timestamp, ok := config["Timestamp"]; ok {
+			if lastUpdated, ok := timestamp["LastUpdated"]; ok {
+				var t int64
+				err = json.Unmarshal(lastUpdated, &t)
+				if err != nil {
+					log.Fatalf("Configuration file timestamp last updated has invalid value: %+v", err)
+					return err
+				}
+				age := time.Now().Unix() - t
+				if age > cacheTimeout {
+					log.Tracef("Configuration file contains outdated cache (%d > %d). Cache will be ignored.\n", age, cacheTimeout)
+					delete(config, "Cache")
+				} else {
+					log.Tracef("Configuration file cache age: %d <= %d (cache timeout)\n", age, cacheTimeout)
+				}
+			} else {
+				log.Fatalln("Configuration file timestamp has invalid structure: no 'LastUpdated' key")
+				return err
+			}
+		} else {
+			log.Tracef("Configuration file does not contain timestamp. Cache will be ignored.\n")
+			delete(config, "Cache")
+		}
+
 		// Lookup for cache
 		if cacheConfiguration, ok := config["Cache"]; ok {
 			// Load known cache items
@@ -430,21 +459,21 @@ func loadCache() error {
 					var context HTML5Context
 					err = json.Unmarshal(value, &context)
 					if err != nil {
-						log.Fatalln("Could not HMTL5 context from configuration file cache")
+						log.Fatalln("Could not read HMTL5 context from configuration file cache")
 					}
 					cache.Set(key, context)
 				} else if strings.Index(key, "GetServices:") == 0 {
 					var services []models.CFService
 					err = json.Unmarshal(value, &services)
 					if err != nil {
-						log.Fatalln("Could not HMTL5 services from configuration file cache")
+						log.Fatalln("Could not read HMTL5 services from configuration file cache")
 					}
 					cache.Set(key, services)
 				} else if strings.Index(key, "GetServicePlans:") == 0 {
 					var servicePlans []models.CFServicePlan
 					err = json.Unmarshal(value, &servicePlans)
 					if err != nil {
-						log.Fatalln("Could not HMTL5 service plans from configuration file cache")
+						log.Fatalln("Could not read HMTL5 service plans from configuration file cache")
 					}
 					cache.Set(key, servicePlans)
 				}
@@ -485,6 +514,7 @@ func saveCache() error {
 
 		// Update cache
 		config["Cache"] = cache.All()
+		config["Timestamp"] = map[string]int64{"LastUpdated": time.Now().Unix()}
 
 		// Marshal configuration file
 		data, err = json.Marshal(config)
@@ -511,6 +541,7 @@ func saveCache() error {
 		// Create configuration
 		config = make(map[string]interface{})
 		config["Cache"] = cache.All()
+		config["Timestamp"] = map[string]int64{"LastUpdated": time.Now().Unix()}
 
 		// Marshal configuration file
 		data, err = json.Marshal(config)
@@ -574,7 +605,7 @@ func clearCache() error {
 
 		return nil
 	} else if os.IsNotExist(err) {
-		log.Traceln("Configuration file does not exist. No cache to crear")
+		log.Traceln("Configuration file does not exist. No cache to clear")
 		return nil
 	} else {
 		log.Fatalln("Could not check existence of configuration file")
