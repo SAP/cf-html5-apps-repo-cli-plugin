@@ -817,22 +817,40 @@ func (c *PushCommand) CreateHTML5Destination(context Context, credentials models
 			ClientID:            credentials.UAA.ClientID,
 			ClientSecret:        credentials.UAA.ClientSecret,
 			Properties: map[string]string{
-				"html5-apps-repo.app_host_id": credentials.HTML5AppsRepo.AppHostID,
-				"sap.cloud.service":           *credentials.SapCloudService,
-				"xsappname":                   credentials.UAA.XSAPPNAME,
+				"sap.cloud.service": *credentials.SapCloudService,
+				"xsappname":         credentials.UAA.XSAPPNAME,
 			},
+		}
+
+		// html5-apps-repo
+		if credentials.HTML5AppsRepo.AppHostID != "" {
+			if os.Getenv("HTML5_COMPATIBILITY") == "1.4.3" {
+				html5Destination.Properties["html5-apps-repo.app_host_id"] = credentials.HTML5AppsRepo.AppHostID
+			} else {
+				html5Destination.Properties["html5-apps-repo"] = "{\"app_host_id\":\"" + credentials.HTML5AppsRepo.AppHostID + "\"}"
+			}
 		}
 
 		// Endpoints
 		if credentials.Endpoints != nil {
-			for endpointKey, endpointValue := range *credentials.Endpoints {
-				if endpointValue.Timeout != "" {
-					html5Destination.Properties["endpoints."+endpointKey+".timeout"] = endpointValue.Timeout
-					html5Destination.Properties["endpoints."+endpointKey+".url"] = endpointValue.URL
-				} else {
-					html5Destination.Properties["endpoints."+endpointKey] = endpointValue.URL
+			log.Tracef("Destination endpoints: %+v\n", *credentials.Endpoints)
+			if os.Getenv("HTML5_COMPATIBILITY") == "1.4.3" {
+				for endpointKey, endpointValue := range *credentials.Endpoints {
+					if endpointValue.Timeout != "" {
+						html5Destination.Properties["endpoints."+endpointKey+".timeout"] = endpointValue.Timeout
+						html5Destination.Properties["endpoints."+endpointKey+".url"] = endpointValue.URL
+					} else {
+						html5Destination.Properties["endpoints."+endpointKey] = endpointValue.URL
+					}
 				}
+			} else {
+				endpoints, err := json.Marshal(*credentials.Endpoints)
+				if err != nil {
+					return fmt.Errorf("Could not marshal business service endpoints")
+				}
+				html5Destination.Properties["endpoints"] = string(endpoints)
 			}
+
 		}
 
 		// Create destination
