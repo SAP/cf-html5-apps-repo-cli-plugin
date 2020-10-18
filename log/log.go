@@ -6,8 +6,25 @@ import (
 	"time"
 )
 
-// Debug true if environment variable DEBUG is set to 1
-var Debug = (os.Getenv("DEBUG") == "1")
+// Debug true if environment variable DEBUG is set to 1 or 2
+var Debug = (os.Getenv("DEBUG") == "1" || os.Getenv("DEBUG") == "2")
+
+// DebugSensitive true if environment variable DEBUG is set to 2
+var DebugSensitive = (os.Getenv("DEBUG") == "2")
+
+// Sensitive is a wrapper around any sensitive data
+// that should not be logged, except the corresponding
+// flag is set to true
+type Sensitive struct {
+	Data interface{}
+}
+
+func (s Sensitive) String() string {
+	if DebugSensitive {
+		return fmt.Sprintf("+%v", s.Data)
+	}
+	return "[ SENSITIVE DATA ]"
+}
 
 // Exiter exiter interface
 type Exiter interface {
