@@ -239,6 +239,18 @@ The following are supported:
 
 ## Troubleshooting
 
+#### Can't Resolve Dependencies
+
+If `go build` fails to resolve dependencies and you see error messages similar to
+```
+go build
+commands\html5_push_command.go:4:2: cannot find package "archive/zip" in any of:
+        C:\Users\<my_user>\go\src\cf-html5-apps-repo-cli-plugin\vendor\archive\zip (vendor tree)
+        C:\Users\<my_user>\go\src\archive\zip (from $GOROOT)
+        ($GOPATH not set. For more details see: 'go help gopath')
+```
+you need to set `GO111MODULE=off` before running the `go build`.
+
 #### Services and Service Keys
 
 In order to work with HTML5 Application Repository API, the CF HTML5 Applications 
