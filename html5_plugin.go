@@ -17,7 +17,7 @@ import (
 )
 
 // Version is the version of the CLI plugin.
-var Version = "1.4.3"
+var Version = "1.4.4"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}
@@ -41,6 +41,7 @@ func (p *HTML5Plugin) Run(cliConnection plugin.CliConnection, args []string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	log.Tracef("Running CloudFoundry html5-plugin %s\n", Version)
 	command.Initialize(command.GetPluginCommand().Name, cliConnection)
 	status := command.Execute(args[1:])
 	if status == commands.Failure {

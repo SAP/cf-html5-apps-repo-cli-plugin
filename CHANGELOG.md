@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.4.4] - 2020-10-19
+### Added
+- Support new business service destination configuration format in `html5-list -d` and
+  `html5-delete -d` commands
+- Support `DEBUG=2` to print sensitive data (e.g. access tokens) in trace logs
+
+### Changed
+- Command `html5-push -s` generates custom property `html5-apps-repo` with value
+  `{"app_host_id":"<guid>"}` instead of property `html5-apps-repo.app_host_id` with
+  value `<guid>`
+- Command `html5-push -s` generates custom property `endpoints` with value
+  `{"<endpoint_name>":"<url>"}` instead of property `endpoint.<endpoint_name>` with
+  value `<url>`
+- Trace logs available with `DEBUG=1` will not contain access tokens any longer
+
+### Fixed
+- Command `html5-push -s` generates business service destination with properly set 
+  endpoints timeouts
+- The default `xsuaa` instance configuration now contain scopes defined in `xs-app.json`
+  routes as array (not only as string with single value), when using `cf html5-push -d`
+
+### Performance
+- Invalidate cache after 1 hour  
+
 ## [1.4.3] - 2020-06-03
 ### Changed
 - Command `html5-delete -d` will not fail, if service instance with provided `app-host-id`
