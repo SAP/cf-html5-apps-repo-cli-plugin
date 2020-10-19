@@ -34,6 +34,23 @@ can install the plugin directly from the [Cloud Foundry Community](https://plugi
 cf install-plugin -r CF-Community "html5-plugin"
 ```
 
+Alternatively, you can install latest release from GitHub Releases with one of the following commands, depending on you operational system:
+
+#### macOS
+```bash
+cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-darwin-amd64
+```
+
+#### Linux
+```bash
+cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-linux-amd64
+```
+
+#### Windows
+```bash
+cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-windows-amd64.exe
+```
+
 Otherwise, you can build from source code:
 - [Clone or download](https://help.github.com/articles/cloning-a-repository/) the current repository to `/src` folder of your default `GOPATH`:
   * On Unix-like systems: `$HOME/go/src`
@@ -229,7 +246,8 @@ OPTIONS:
 
 The configuration of the CF HTML5 Applications Repository CLI Plugin is done by using environment variables.
 The following are supported:
-  * `DEBUG=1` - enables trace logs with detailed information about currently running steps
+  * `DEBUG=1` - enables trace logs with detailed information about currently running steps. If you want to
+     see also the sensitive information in the trace logs (e.g. access tokens), use `DEBUG=2` instead.
   * `HTML5_CACHE=1` - enables persisted cache. Disabled by default. Should be enabled only for sequential
      execution of the CF HTML5 Applications Repository CLI Plugin commands in the same context 
      (org/space/user) during short period of time (less than 12 hours)
@@ -238,18 +256,6 @@ The following are supported:
     destinations (default: `https://<tenant>.cpp.<landscape_url>`)
 
 ## Troubleshooting
-
-#### Can't Resolve Dependencies
-
-If `go build` fails to resolve dependencies and you see error messages similar to
-```
-go build
-commands\html5_push_command.go:4:2: cannot find package "archive/zip" in any of:
-        C:\Users\<my_user>\go\src\cf-html5-apps-repo-cli-plugin\vendor\archive\zip (vendor tree)
-        C:\Users\<my_user>\go\src\archive\zip (from $GOROOT)
-        ($GOPATH not set. For more details see: 'go help gopath')
-```
-you need to set `GO111MODULE=off` before running the `go build`.
 
 #### Services and Service Keys
 
