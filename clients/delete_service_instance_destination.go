@@ -8,8 +8,8 @@ import (
 	"net/http"
 )
 
-// DeleteSubaccountDestination delete destination service subaccount destination
-func DeleteSubaccountDestination(serviceURL string, accessToken string, destinationName string) error {
+// DeleteServiceInstanceDestination delete destination service instance level destination
+func DeleteServiceInstanceDestination(serviceURL string, accessToken string, destinationName string) error {
 	var err error
 	var request *http.Request
 	var response *http.Response
@@ -17,7 +17,7 @@ func DeleteSubaccountDestination(serviceURL string, accessToken string, destinat
 	var payload = []byte{}
 	var body []byte
 
-	destinationsURL = serviceURL + "/destination-configuration/v1/subaccountDestinations/" + destinationName
+	destinationsURL = serviceURL + "/destination-configuration/v1/instanceDestinations/" + destinationName
 	log.Tracef("Making request to: %s\n", destinationsURL)
 	request, err = http.NewRequest("DELETE", destinationsURL, bytes.NewBuffer(payload))
 	if err != nil {

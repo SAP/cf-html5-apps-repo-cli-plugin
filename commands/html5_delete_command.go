@@ -2,6 +2,7 @@ package commands
 
 import (
 	clients "cf-html5-apps-repo-cli-plugin/clients"
+	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
 	"encoding/json"
@@ -24,13 +25,15 @@ func (c *DeleteCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-delete",
 		HelpText: "Delete one or multiple app-host service instances or content uploaded with these instances",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-delete [--content|--destination] APP_HOST_ID|-n APP_HOST_NAME [...]",
+			Usage: "cf html5-delete [--content|-d|-di DESTINATION_SERVICE_INSTANCE_NAME] APP_HOST_ID|-n APP_HOST_NAME [...]",
 			Options: map[string]string{
-				"-content":        "delete content only",
-				"-destination,-d": "delete destinations that point to service instances to be deleted",
-				"-name,-n":        "Use app-host service instance with specified name",
-				"APP_HOST_ID":     "GUID of html5-apps-repo app-host service instance",
-				"APP_HOST_NAME":   "Name of html5-apps-repo app-host service instance",
+				"-content":                          "delete content only",
+				"-destination,-d":                   "delete subaccount level destinations that point to service instances to be deleted",
+				"-destination-instance, -di":        "delete destinations that point to service instances to be deleted from specific destination service instance",
+				"-name,-n":                          "Use app-host service instance with specified name",
+				"APP_HOST_ID":                       "GUID of html5-apps-repo app-host service instance",
+				"APP_HOST_NAME":                     "Name of html5-apps-repo app-host service instance",
+				"DESTINATION_SERVICE_INSTANCE_NAME": "Name of destination service intance",
 			},
 		},
 	}
@@ -44,6 +47,8 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 	contentFlag := flagSet.Bool("content", false, "delete content only")
 	destinationFlag := flagSet.Bool("destination", false, "delete destinations that point to service instances to be deleted")
 	destinationFlagAlias := flagSet.Bool("d", false, "delete destinations that point to service instances to be deleted")
+	destinationInstanceFlag := flagSet.String("destination-instance", "", "delete destinations that point to service instances to be deleted from specific destination service instance")
+	destinationInstanceFlagAlias := flagSet.String("di", "", "delete destinations that point to service instances to be deleted")
 
 	var appHostNames stringSlice
 	flagSet.Var(&appHostNames, "name", "Name of html5-apps-repo app-host service instance")
@@ -54,13 +59,16 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 	if *destinationFlagAlias && !*destinationFlag {
 		destinationFlag = destinationFlagAlias
 	}
+	if *destinationInstanceFlagAlias != "" && *destinationInstanceFlag == "" {
+		destinationInstanceFlag = destinationInstanceFlagAlias
+	}
 
 	if flagSet.NArg() > 0 || len(appHostNames) > 0 {
 		appHostGUIDs := flagSet.Args()
 		if *contentFlag {
 			return c.DeleteServiceInstancesContent(appHostGUIDs, appHostNames)
 		}
-		return c.DeleteServiceInstances(appHostGUIDs, appHostNames, *destinationFlag)
+		return c.DeleteServiceInstances(appHostGUIDs, appHostNames, *destinationFlag, *destinationInstanceFlag)
 	}
 
 	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more detals")
@@ -139,7 +147,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 
 // DeleteServiceInstances delete service instances by app-host-ids,
 // including all dependent service keys
-func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string, deleteDestinations bool) ExecutionStatus {
+func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNames []string, deleteDestinations bool, destinationInstance string) ExecutionStatus {
 	log.Tracef("Deleting service instances by IDs: %v\n", appHostGUIDs)
 	var err error
 
@@ -190,19 +198,38 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 		terminal.EntityNameColor(context.Username))
 
 	// Delete destinatons if needed
-	if deleteDestinations {
+	if deleteDestinations || destinationInstance != "" {
+		var destinations models.DestinationListDestinationsResponse
+		var err error
+		var destinationLevel string
+
+		// Define destination level
+		if destinationInstance == "" {
+			destinationLevel = "subaccount"
+		} else {
+			destinationLevel = "service instance"
+		}
+
 		// Create destination context
 		log.Tracef("Getting destination service context\n")
-		destinationContext, err := c.GetDestinationContext(context)
+		destinationContext, err := c.GetDestinationContext(context, destinationInstance)
 		if err != nil {
 			ui.Failed("Could not create destination context: %+v\n", err)
 			return Failure
 		}
 
-		// List destinations
-		destinations, err := clients.ListSubaccountDestinations(
-			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-			destinationContext.DestinationServiceInstanceKeyToken)
+		log.Tracef("Getting list of %s destinations\n", destinationLevel)
+		if destinationInstance == "" {
+			// List subaccount destinations
+			destinations, err = clients.ListSubaccountDestinations(
+				*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+				destinationContext.DestinationServiceInstanceKeyToken)
+		} else {
+			// List service instance destinations
+			destinations, err = clients.ListServiceInstanceDestinations(
+				*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+				destinationContext.DestinationServiceInstanceKeyToken)
+		}
 
 		// Find relevant destinations and delete them
 		sapCloudServices := make([]string, 0)
@@ -234,13 +261,20 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 				val = strings.Trim(val, " ")
 				for _, appHostGUID := range appHostGUIDs {
 					if val == appHostGUID {
-						log.Tracef("Deleting destination '%s'\n", destination.Name)
-						err = clients.DeleteSubaccountDestination(
-							*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-							destinationContext.DestinationServiceInstanceKeyToken,
-							destination.Name)
+						log.Tracef("Deleting %s destination '%s'\n", destinationLevel, destination.Name)
+						if destinationInstance == "" {
+							err = clients.DeleteSubaccountDestination(
+								*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+								destinationContext.DestinationServiceInstanceKeyToken,
+								destination.Name)
+						} else {
+							err = clients.DeleteServiceInstanceDestination(
+								*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+								destinationContext.DestinationServiceInstanceKeyToken,
+								destination.Name)
+						}
 						if err != nil {
-							ui.Failed("Could not delete destination '%s': %+v\n", destination.Name, err)
+							ui.Failed("Could not delete %s destination '%s': %+v\n", destinationLevel, destination.Name, err)
 							return Failure
 						}
 						if sapCloudService, ok := destination.Properties["sap.cloud.service"]; ok {
@@ -258,14 +292,21 @@ func (c *DeleteCommand) DeleteServiceInstances(appHostGUIDs []string, appHostNam
 				if val, ok := destination.Properties["sap.cloud.service"]; ok {
 					for _, sapCloudService := range sapCloudServices {
 						if val == sapCloudService {
-							log.Tracef("Deleting destination '%s' with sap.cloud.service '%s'\n", destination.Name, val)
-							err = clients.DeleteSubaccountDestination(
-								*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-								destinationContext.DestinationServiceInstanceKeyToken,
-								destination.Name)
+							log.Tracef("Deleting %s destination '%s' with sap.cloud.service '%s'\n", destinationLevel, destination.Name, val)
+							if destinationInstance == "" {
+								err = clients.DeleteSubaccountDestination(
+									*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+									destinationContext.DestinationServiceInstanceKeyToken,
+									destination.Name)
+							} else {
+								err = clients.DeleteServiceInstanceDestination(
+									*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+									destinationContext.DestinationServiceInstanceKeyToken,
+									destination.Name)
+							}
 							if err != nil {
-								ui.Failed("Could not delete destination '%s' with sap.cloud.service '%s': %+v\n",
-									destination.Name, val, err)
+								ui.Failed("Could not delete %s destination '%s' with sap.cloud.service '%s': %+v\n",
+									destinationLevel, destination.Name, val, err)
 								return Failure
 							}
 							break

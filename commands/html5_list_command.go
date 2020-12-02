@@ -30,16 +30,18 @@ func (c *ListCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-list",
 		HelpText: "Display list of HTML5 applications or file paths of specified application",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-d|-a CF_APP_NAME [-u]]",
+			Usage: "cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-a CF_APP_NAME [-u]]",
 			Options: map[string]string{
-				"APP_NAME":         "Application name, which file paths should be listed. If not provided, list of applications will be printed",
-				"APP_VERSION":      "Application version, which file paths should be listed. If not provided, current active version will be used",
-				"APP_HOST_ID":      "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"APP_HOST_NAME":    "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
-				"-destination, -d": "List HTML5 applications exposed via destinations with sap.cloud.service and html5-apps-repo.app_host_id properties",
-				"-name, -n":        "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
-				"-app, -a":         "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
-				"-url, -u":         "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag or when --destination flag is used",
+				"APP_NAME":                          "Application name, which file paths should be listed. If not provided, list of applications will be printed",
+				"APP_VERSION":                       "Application version, which file paths should be listed. If not provided, current active version will be used",
+				"APP_HOST_ID":                       "GUID of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"APP_HOST_NAME":                     "Name of html5-apps-repo app-host service instance that contains application with specified name and version",
+				"DESTINATION_SERVICE_INSTANCE_NAME": "Name of destination service intance",
+				"-destination, -d":                  "List HTML5 applications exposed via subaccount destinations with sap.cloud.service and html5-apps-repo.app_host_id properties",
+				"-destination-instance, -di":        "List HTML5 applications exposed via service instance destinations with sap.cloud.service and html5-apps-repo.app_host_id properties",
+				"-name, -n":                         "Use html5-apps-repo app-host service instance name instead of APP_HOST_ID",
+				"-app, -a":                          "Cloud Foundry application name, which is bound to services that expose UI via html5-apps-repo",
+				"-url, -u":                          "Show conventional URLs of applications, when accessed via Cloud Foundry application specified with --app flag or when --destination flag is used",
 			},
 		},
 	}
@@ -113,18 +115,36 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		showUrls = true
 	}
 
+	// Destination (subaccount)
 	var destination = false
 	if argsMap["-d"] != nil || argsMap["--destination"] != nil {
 		destination = true
 	}
 
+	// Destination (instance)
+	var destinationInstance = ""
+	if argsMap["-di"] != nil && argsMap["--destination-instance"] != nil {
+		ui.Failed("Can't use both '--destination-instance' and '-di' at the same time")
+		return Failure
+	}
+	if argsMap["-di"] != nil {
+		argsMap["--destination-instance"] = argsMap["-di"]
+	}
+	if argsMap["--destination-instance"] != nil {
+		if len(argsMap["--destination-instance"]) != 1 {
+			ui.Failed("Incorrect number of arguments for DESTINATION_SERVICE_INSTANCE_NAME option (expected: 1, actual: %d). For help see [cf html5-list --help]", len(argsMap["--destination-instance"]))
+			return Failure
+		}
+		destinationInstance = argsMap["--destination-instance"][0]
+	}
+
 	if app != "" {
 		// List HTML5 applications available in CF application context
 		return c.ListAppApps(app, showUrls)
-	} else if destination {
+	} else if destination || destinationInstance != "" {
 		// List HTML5 applications available via destinations with
 		// sap.cloud.service and html5-apps-repo.app_host_id properties
-		return c.ListDestinationApps(showUrls)
+		return c.ListDestinationApps(destinationInstance, showUrls)
 	} else if len(argsMap["_"]) == 3 {
 		// List files paths of application with version from app-host-id
 		return c.ListAppFiles(argsMap["_"][0], argsMap["_"][1], argsMap["_"][2], false)
@@ -152,7 +172,7 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 }
 
 // ListDestinationApps get list of HTML5 applications available via destinations
-func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
+func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls bool) ExecutionStatus {
 
 	log.Tracef("Listing HTML5 applications available via destinations\n")
 
@@ -177,21 +197,34 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 	}
 
 	// Get Destination context
-	destinationContext, err := c.GetDestinationContext(context)
+	destinationContext, err := c.GetDestinationContext(context, destinationInstance)
 	if err != nil {
 		ui.Failed(err.Error())
 		return Failure
 	}
 
-	// List subaccount destinations
-	destinations, err := clients.ListSubaccountDestinations(
-		*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-		destinationContext.DestinationServiceInstanceKeyToken)
-	if err != nil {
-		ui.Failed("Could not get list of subaccount destinations: %s", err.Error())
-		return Failure
+	var destinations models.DestinationListDestinationsResponse
+	if destinationInstance != "" {
+		// List service instance destinations
+		destinations, err = clients.ListServiceInstanceDestinations(
+			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+			destinationContext.DestinationServiceInstanceKeyToken)
+		if err != nil {
+			ui.Failed("Could not get list of service instance destinations: %s", err.Error())
+			return Failure
+		}
+		log.Tracef("List of service instance destinations: %+v\n", destinations)
+	} else {
+		// List subaccount destinations
+		destinations, err = clients.ListSubaccountDestinations(
+			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+			destinationContext.DestinationServiceInstanceKeyToken)
+		if err != nil {
+			ui.Failed("Could not get list of subaccount destinations: %s", err.Error())
+			return Failure
+		}
+		log.Tracef("List of subaccount destinations: %+v\n", destinations)
 	}
-	log.Tracef("List of subaccount destinations: %+v\n", destinations)
 
 	// Table columns
 	columns := make([]string, 0)
@@ -208,7 +241,9 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 
 	// Iterate over business service destinations
 	for _, destination := range destinations {
+		log.Tracef("Processing destination: %+v\n", destination)
 		if serviceName, ok := destination.Properties["sap.cloud.service"]; ok {
+			log.Tracef("Destination '%s' has 'sap.cloud.service' property: %s\n", destination.Name, serviceName)
 			var ok bool
 			var appHostGUIDs string
 			appHostGUIDs, ok = destination.Properties["html5-apps-repo.app_host_id"]
@@ -277,7 +312,11 @@ func (c *ListCommand) ListDestinationApps(showUrls bool) ExecutionStatus {
 						row[4] = destination.Name
 						row[5] = application.ChangedOn
 						if showUrls {
-							row[6] = html5Context.RuntimeURL + "/" + strings.Replace(serviceName, ".", "", -1) +
+							destinationInstanceGUID := ""
+							if destinationInstance != "" {
+								destinationInstanceGUID = destinationContext.DestinationServiceInstances[0].GUID + "."
+							}
+							row[6] = html5Context.RuntimeURL + "/" + destinationInstanceGUID + strings.Replace(serviceName, ".", "", -1) +
 								"." + application.ApplicationName + "-" + application.ApplicationVersion + "/"
 						}
 						rows = append(rows, row)

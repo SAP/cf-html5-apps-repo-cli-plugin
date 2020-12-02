@@ -52,7 +52,7 @@ func (c *HTML5Command) Dispose(name string) {
 }
 
 // GetDestinationContext get destination context
-func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContext, error) {
+func (c *HTML5Command) GetDestinationContext(context Context, destinationInstanceName string) (DestinationContext, error) {
 
 	// Context to return
 	var destinationContext = DestinationContext{}
@@ -108,12 +108,30 @@ func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContex
 	}
 	destinationContext.DestinationServiceInstances = destinationServiceInstances
 
+	// Sort destination service instance so that the requested instance to be the first one in the list.
+	// If specific destinaton service instance name is required, but not found - return error
+	if destinationInstanceName != "" {
+		found := false
+		for idx, instance := range destinationServiceInstances {
+			if instance.Name == destinationInstanceName {
+				tmp := destinationServiceInstances[0]
+				destinationServiceInstances[0] = instance
+				destinationServiceInstances[idx] = tmp
+				found = true
+				break
+			}
+		}
+		if !found {
+			return destinationContext, fmt.Errorf("Could not find service instance of 'destination' service 'lite' plan with name '%s'", destinationInstanceName)
+		}
+	}
+
 	// Create instance of 'lite' plan if needed
 	if len(destinationServiceInstances) == 0 {
 		log.Tracef("Creating service instance of 'destination' service 'lite' plan\n")
 		destinationServiceInstance, err := clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *liteServicePlan, nil, "")
 		if err != nil {
-			return destinationContext, fmt.Errorf("Could not create service service instance of 'destination' service 'lite' plan: %s", err.Error())
+			return destinationContext, fmt.Errorf("Could not create service instance of 'destination' service 'lite' plan: %s", err.Error())
 		}
 		destinationServiceInstances = append(destinationServiceInstances, *destinationServiceInstance)
 		destinationContext.DestinationServiceInstance = destinationServiceInstance
@@ -123,10 +141,10 @@ func (c *HTML5Command) GetDestinationContext(context Context) (DestinationContex
 
 	// Create service key
 	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
-	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[len(destinationServiceInstances)-1].GUID)
+	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[0].GUID)
 	if err != nil {
 		return destinationContext, fmt.Errorf("Could not create service key of %s service instance: %s",
-			destinationServiceInstances[len(destinationServiceInstances)-1].Name,
+			destinationServiceInstances[0].Name,
 			err.Error())
 	}
 	destinationContext.DestinationServiceInstanceKey = destinationServiceInstanceKey

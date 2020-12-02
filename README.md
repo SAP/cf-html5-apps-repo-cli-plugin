@@ -82,6 +82,7 @@ The CF HTML5 Applications Repository CLI Plugin supports the following commands:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.5` | The `--destination-instance` option added   |
 | `v1.4.0` | The `--destination` option added            |
 | `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | The `--url` option added                    |
@@ -94,27 +95,32 @@ NAME:
    html5-list - Display list of HTML5 applications or file paths of specified application
 
 USAGE:
-   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] [-d|-a CF_APP_NAME [-u]]
+   cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] 
+                 [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-a CF_APP_NAME [-u]]
 
 OPTIONS:
-   -APP_NAME          Application name, which file paths should be listed.
-                      If not provided, list of applications will be printed.
-   -APP_VERSION       Application version, which file paths should be listed.
-                      If not provided, the current active version will be used.
-   -APP_HOST_ID       GUID of html5-apps-repo app-host service instance that
-                      contains application with specified name and version
-   -APP_HOST_NAME     Name of html5-apps-repo app-host service instance that 
-                      contains the application with specified name and version.
-   --name, -n         Use html5-apps-repo app-host service instance name
-                      instead of APP_HOST_ID
-   --destination, -d  List HTML5 applications exposed via destinations with 
-                      sap.cloud.service and html5-apps-repo.app_host_id 
-                      properties
-   --app, -a          Cloud Foundry application name, which is bound to
-                      services that expose UI via html5-apps-repo
-   --url, -u          Show conventional URLs of the applications, when accessed 
-                      via Cloud Foundry application specified with --app flag
-                      or when --destination flag is used                   
+   -APP_NAME                           Application name, which file paths should be listed.
+                                       If not provided, list of applications will be printed.
+   -APP_VERSION                        Application version, which file paths should be listed.
+                                       If not provided, the current active version will be used.
+   -APP_HOST_ID                        GUID of html5-apps-repo app-host service instance that
+                                       contains application with specified name and version
+   -APP_HOST_NAME                      Name of html5-apps-repo app-host service instance that 
+                                       contains the application with specified name and version.
+   -DESTINATION_SERVICE_INSTANCE_NAME  Name of destination service intance
+   --name, -n                          Use html5-apps-repo app-host service instance name
+                                       instead of APP_HOST_ID
+   --destination, -d                   List HTML5 applications exposed via destinations with 
+                                       sap.cloud.service and html5-apps-repo.app_host_id 
+                                       properties
+   --destination-instance, -di         List HTML5 applications exposed via service instance 
+                                       destinations with sap.cloud.service and 
+                                       html5-apps-repo.app_host_id properties
+   --app, -a                           Cloud Foundry application name, which is bound to
+                                       services that expose UI via html5-apps-repo
+   --url, -u                           Show conventional URLs of the applications, when accessed 
+                                       via Cloud Foundry application specified with --app flag
+                                       or when --destination flag is used                   
 ```
 
 #### html5-get
@@ -159,6 +165,7 @@ OPTIONS:
 
 | Version  | Changes                                           |
 |----------|---------------------------------------------------|
+| `v1.4.5` | The `--destination-instance` option added         |
 | `v1.4.0` | The `--destination` and `--service` options added |
 | `v1.2.0` | The `--name` and `--redeploy` options added       |
 | `v1.0.0` | Added in `v1.0.0`                                 |
@@ -170,7 +177,8 @@ NAME:
    html5-push - Push HTML5 applications to html5-apps-repo service
 
 USAGE:
-   cf html5-push [-d|-s SERVICE_INSTANCE_NAME] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
+   cf html5-push [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-s SERVICE_INSTANCE_NAME] [-r|-n APP_HOST_NAME] 
+                 [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
 
 OPTIONS:
    -APP_HOST_ID              GUID of html5-apps-repo app-host service instance 
@@ -196,6 +204,7 @@ OPTIONS:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.5` | The `--destination-instance` option added   |
 | `v1.4.0` | The `--destination` option added            |
 | `v1.3.0` | The `--name` option added                   |
 | `v1.1.0` | Added in `v1.1.0`                           |

@@ -9,8 +9,8 @@ import (
 	"net/http"
 )
 
-// CreateSubaccountDestination create destination service subaccount destination
-func CreateSubaccountDestination(serviceURL string, accessToken string, destination models.DestinationConfiguration) error {
+// CreateServiceInstanceDestination create destination service service instance destination
+func CreateServiceInstanceDestination(serviceURL string, accessToken string, destination models.DestinationConfiguration) error {
 	var err error
 	var request *http.Request
 	var response *http.Response
@@ -25,7 +25,7 @@ func CreateSubaccountDestination(serviceURL string, accessToken string, destinat
 	}
 	log.Tracef("Destination configuration JSON: %s\n", payload)
 
-	destinationsURL = serviceURL + "/destination-configuration/v1/subaccountDestinations/"
+	destinationsURL = serviceURL + "/destination-configuration/v1/instanceDestinations/"
 	log.Tracef("Making request to: %s\n", destinationsURL)
 	request, err = http.NewRequest("POST", destinationsURL, bytes.NewBuffer(payload))
 	if err != nil {

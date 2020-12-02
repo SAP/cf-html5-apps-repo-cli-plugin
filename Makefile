@@ -1,5 +1,5 @@
 NAME=cf-html5-apps-repo-cli-plugin
-VERSION=1.4.4
+VERSION=1.4.5
 
 # Build the project
 all: clean build install
