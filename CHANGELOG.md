@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.4.5] - ???
+## [1.4.5] - 2020-12-02
 ### Added
 - Support `-di` flag for `html5-list` command ([#43](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/43))
 - Support `-di` flag for `html5-push` command ([#44](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/44))
