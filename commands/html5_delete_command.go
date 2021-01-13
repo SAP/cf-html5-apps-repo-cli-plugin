@@ -71,7 +71,7 @@ func (c *DeleteCommand) Execute(args []string) ExecutionStatus {
 		return c.DeleteServiceInstances(appHostGUIDs, appHostNames, *destinationFlag, *destinationInstanceFlag)
 	}
 
-	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more detals")
+	ui.Failed("Incorrect number of arguments passed. See [cf html5-delete --help] for more details")
 	return Failure
 }
 

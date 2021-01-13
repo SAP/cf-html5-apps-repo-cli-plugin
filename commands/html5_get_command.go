@@ -127,7 +127,7 @@ func (c *GetCommand) Execute(args []string) ExecutionStatus {
 		return c.GetFileContents(output, argsMap["_"][0], appHostNameOrGUID, name != "")
 	}
 
-	ui.Failed("Incorrect number of arguments passed. See [cf html5-get --help] for more detals")
+	ui.Failed("Incorrect number of arguments passed. See [cf html5-get --help] for more details")
 	return Failure
 }
 

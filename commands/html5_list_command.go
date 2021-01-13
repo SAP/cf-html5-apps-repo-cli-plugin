@@ -167,7 +167,7 @@ func (c *ListCommand) Execute(args []string) ExecutionStatus {
 		return c.ListAppFiles(argsMap["_"][0], "", "", false)
 	}
 
-	ui.Failed("Too much arguments. See [cf html5-list --help] for more detals")
+	ui.Failed("Too many arguments. See [cf html5-list --help] for more details")
 	return Failure
 }
 

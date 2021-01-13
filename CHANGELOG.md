@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+### Fixed
+- Typo in error messages of `html5-list`, `html5-get` and `html5-delete`
 ## [1.4.5] - 2020-12-02
 ### Added
 - Support `-di` flag for `html5-list` command ([#43](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/43))
