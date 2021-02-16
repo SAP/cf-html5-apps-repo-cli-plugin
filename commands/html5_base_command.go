@@ -322,14 +322,6 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 		html5Context.HTML5AppRuntimeServiceInstanceKey.Name,
 		log.Sensitive{Data: appRuntimeServiceInstanceKeyToken})
 
-	// Runtime URL
-	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
-	if runtimeURL == "" {
-		uri := *html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI
-		runtimeURL = "https://" + html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + ".cpp" + uri[strings.Index(uri, "."):]
-	}
-	html5Context.RuntimeURL = runtimeURL
-
 	// Fill cache
 	cache.Set("GetHTML5Context:"+context.OrgID+":"+context.SpaceID, html5Context)
 
@@ -385,8 +377,19 @@ type HTML5Context struct {
 	HTML5AppRuntimeServiceInstanceKey *models.CFServiceKey
 	// Access token of html5-apps-repo app-runtime service key
 	HTML5AppRuntimeServiceInstanceKeyToken string
-	// Runtime application URL
-	RuntimeURL string
+}
+
+// GetRuntimeURL base runtime URL for HTML5 applications
+func (ctx *HTML5Context) GetRuntimeURL(runtime string) string {
+	runtimeURL := os.Getenv("HTML5_RUNTIME_URL")
+	if runtimeURL == "" {
+		uri := *ctx.HTML5AppRuntimeServiceInstanceKey.Credentials.URI
+		if runtime == "" {
+			runtime = "cpp"
+		}
+		runtimeURL = "https://" + ctx.HTML5AppRuntimeServiceInstanceKey.Credentials.UAA.IdentityZone + "." + runtime + uri[strings.Index(uri, "."):]
+	}
+	return runtimeURL
 }
 
 // DestinationContext Destination context struct

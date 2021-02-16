@@ -33,10 +33,11 @@ func (c *PushCommand) GetPluginCommand() plugin.Command {
 		Name:     "html5-push",
 		HelpText: "Push HTML5 applications to html5-apps-repo service",
 		UsageDetails: plugin.Usage{
-			Usage: "cf html5-push [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-s SERVICE_INSTANCE_NAME] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
+			Usage: "cf html5-push [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-s SERVICE_INSTANCE_NAME] [-rt RUNTIME] [-r|-n APP_HOST_NAME] [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]",
 			Options: map[string]string{
 				"-destination,-d":                   "Create subaccount level destination with credentials to access HTML5 applications",
 				"-destination-instance, -di":        "Create service instance level destination with credentials to access HTML5 applications",
+				"-runtime, -rt":                     "Runtime service for which conventional URLs of applications will be shown. Default value is 'cpp'",
 				"-service,-s":                       "Create subaccount level destination with credentials of the service instance",
 				"-name,-n":                          "Use app-host service instance with specified name",
 				"-redeploy,-r":                      "Redeploy HTML5 applications. All applications should be previously deployed to same service instance",
@@ -57,6 +58,8 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 	flagSet := flag.NewFlagSet("html5-push", flag.ContinueOnError)
 	destinationServiceInstanceFlag := flagSet.String("destination-instance", "", "destinaiton service instance name")
 	destinationServiceInstanceFlagAlias := flagSet.String("di", "", "destinaiton service instance name")
+	runtimeFlag := flagSet.String("runtime", "", "runtime")
+	runtimeFlagAlias := flagSet.String("rt", "", "runtime")
 	businessServiceFlag := flagSet.String("service", "", "business service instance name")
 	businessServiceFlagAlias := flagSet.String("s", "", "business service instance name")
 	destinationFlag := flagSet.Bool("destination", false, "create destination to access HTML5 applications")
@@ -80,6 +83,11 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 		destinationInstance = *destinationServiceInstanceFlag
 	}
 	log.Tracef("Destination instance name: %v\n", destinationInstance)
+	runtime := *runtimeFlagAlias
+	if *runtimeFlag != "" {
+		runtime = *runtimeFlag
+	}
+	log.Tracef("Runtime: %v\n", runtime)
 	redeploy := *redeployFlag || *redeployFlagAlias
 	log.Tracef("Redeploy flag: %v\n", redeploy)
 	serviceName := *nameFlagAlias
@@ -103,7 +111,7 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 			ui.Failed("%+v", err)
 			return Failure
 		}
-		return c.PushHTML5Applications(dirs, "", redeploy, destination, businessService, destinationInstance)
+		return c.PushHTML5Applications(dirs, "", redeploy, destination, businessService, destinationInstance, runtime)
 	}
 
 	// Check if passed argument is app-host-id or application
@@ -171,10 +179,10 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 				ui.Failed("%+v", err)
 				return Failure
 			}
-			return c.PushHTML5Applications(dirs, serviceInstance.GUID, redeploy, destination, businessService, destinationInstance)
+			return c.PushHTML5Applications(dirs, serviceInstance.GUID, redeploy, destination, businessService, destinationInstance, runtime)
 		}
 		// Both application paths and app-host name are provided
-		return c.PushHTML5Applications(flagSet.Args(), serviceInstance.GUID, redeploy, destination, businessService, destinationInstance)
+		return c.PushHTML5Applications(flagSet.Args(), serviceInstance.GUID, redeploy, destination, businessService, destinationInstance, runtime)
 	}
 
 	// Last argument is app-host-id
@@ -188,10 +196,10 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 				ui.Failed("%+v", err)
 				return Failure
 			}
-			return c.PushHTML5Applications(dirs, flagSet.Args()[0], redeploy, destination, businessService, destinationInstance)
+			return c.PushHTML5Applications(dirs, flagSet.Args()[0], redeploy, destination, businessService, destinationInstance, runtime)
 		}
 		// Both application paths and app-host-id are provided
-		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy, destination, businessService, destinationInstance)
+		return c.PushHTML5Applications(flagSet.Args()[:flagSet.NArg()-1], args[len(args)-1], redeploy, destination, businessService, destinationInstance, runtime)
 	}
 
 	// No app directories passed
@@ -201,15 +209,15 @@ func (c *PushCommand) Execute(args []string) ExecutionStatus {
 			ui.Failed("%+v", err)
 			return Failure
 		}
-		return c.PushHTML5Applications(dirs, "", redeploy, destination, businessService, destinationInstance)
+		return c.PushHTML5Applications(dirs, "", redeploy, destination, businessService, destinationInstance, runtime)
 	}
 
 	// Last argument is application name
-	return c.PushHTML5Applications(flagSet.Args(), "", redeploy, destination, businessService, destinationInstance)
+	return c.PushHTML5Applications(flagSet.Args(), "", redeploy, destination, businessService, destinationInstance, runtime)
 }
 
 // PushHTML5Applications push HTML5 applications to app-host-id
-func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string, redeploy bool, destination bool, businessServiceName string, destinationInstance string) ExecutionStatus {
+func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID string, redeploy bool, destination bool, businessServiceName string, destinationInstance string, runtime string) ExecutionStatus {
 	var err error
 	var zipFiles []string
 	var destinationMessage = " "
@@ -682,7 +690,8 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 			return Failure
 		}
 		if xsuaaServiceInstanceKey.Credentials.URI == nil {
-			xsuaaServiceInstanceKey.Credentials.URI = &html5Context.RuntimeURL
+			uri := html5Context.GetRuntimeURL(runtime)
+			xsuaaServiceInstanceKey.Credentials.URI = &uri
 		}
 		// Credentials for destination configuration
 		log.Tracef("XSUAA service key credentials: %+v\n", log.Sensitive{Data: xsuaaServiceInstanceKey.Credentials})
@@ -775,7 +784,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 	if destination {
 		sapCloudServiceName := strings.Replace(sapCloudService, ".", "", -1)
 		for idx, appName := range appNames {
-			ui.Say(html5Context.RuntimeURL + "/" + sapCloudServiceName + "." + appName + "-" + appVersions[idx] + "/")
+			ui.Say(html5Context.GetRuntimeURL(runtime) + "/" + sapCloudServiceName + "." + appName + "-" + appVersions[idx] + "/")
 		}
 		ui.Say("")
 	}
@@ -819,7 +828,7 @@ func (c *PushCommand) CreateHTML5Destination(context Context, credentials models
 	}
 
 	if err != nil {
-		return fmt.Errorf("Could not get list of %s destinations: %s\n", destinationLevel, err.Error())
+		return fmt.Errorf("Could not get list of %s destinations: %s", destinationLevel, err.Error())
 	}
 	log.Tracef("List of %s destinations: %+v\n", destinationLevel, destinations)
 

@@ -82,6 +82,7 @@ The CF HTML5 Applications Repository CLI Plugin supports the following commands:
 
 | Version  | Changes                                     |
 |----------|---------------------------------------------|
+| `v1.4.6` | The `--runtime` option added                |
 | `v1.4.5` | The `--destination-instance` option added   |
 | `v1.4.0` | The `--destination` option added            |
 | `v1.3.0` | The `--name` option added                   |
@@ -96,7 +97,7 @@ NAME:
 
 USAGE:
    cf html5-list [APP_NAME] [APP_VERSION] [APP_HOST_ID|-n APP_HOST_NAME] 
-                 [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-a CF_APP_NAME [-u]]
+                 [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-a CF_APP_NAME [-rt RUNTIME] [-u]]
 
 OPTIONS:
    -APP_NAME                           Application name, which file paths should be listed.
@@ -118,9 +119,12 @@ OPTIONS:
                                        html5-apps-repo.app_host_id properties
    --app, -a                           Cloud Foundry application name, which is bound to
                                        services that expose UI via html5-apps-repo
+   --runtime, -rt                      Runtime service for which conventional URLs of 
+                                       applications will be shown. Default value is 'cpp'                                    
    --url, -u                           Show conventional URLs of the applications, when accessed 
                                        via Cloud Foundry application specified with --app flag
-                                       or when --destination flag is used                   
+                                       or when --destination or --destination-instance flag is 
+                                       used                   
 ```
 
 #### html5-get
@@ -165,6 +169,7 @@ OPTIONS:
 
 | Version  | Changes                                           |
 |----------|---------------------------------------------------|
+| `v1.4.6` | The `--runtime` option added                      |
 | `v1.4.5` | The `--destination-instance` option added         |
 | `v1.4.0` | The `--destination` and `--service` options added |
 | `v1.2.0` | The `--name` and `--redeploy` options added       |
@@ -177,25 +182,29 @@ NAME:
    html5-push - Push HTML5 applications to html5-apps-repo service
 
 USAGE:
-   cf html5-push [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-s SERVICE_INSTANCE_NAME] [-r|-n APP_HOST_NAME] 
+   cf html5-push [-d|-di DESTINATION_SERVICE_INSTANCE_NAME|-s SERVICE_INSTANCE_NAME] [-rt RUNTIME] [-r|-n APP_HOST_NAME] 
                  [PATH_TO_APP_FOLDER ...] [APP_HOST_ID]
 
 OPTIONS:
-   -APP_HOST_ID              GUID of html5-apps-repo app-host service instance 
-                             that contains application with specified name and
-                             version
-   -APP_HOST_NAME            Name of app-host service instance to which 
-                             applications should be deployed
-   -PATH_TO_APP_FOLDER       One or multiple paths to folders containing 
-                             manifest.json and xs-app.json files
-   --destination,-d          Create subaccount level destination with
-                             credentials to access HTML5 applications
-   --service,-s              Create subaccount level destination with
-                             credentials of the service instance
-   --name,-n                 Use app-host service instance with specified name
-   --redeploy,-r             Redeploy HTML5 applications. All applications
-                             should be previously deployed to the same service 
-                             instance.
+   -APP_HOST_ID                 GUID of html5-apps-repo app-host service instance 
+                                that contains application with specified name and
+                                version
+   -APP_HOST_NAME               Name of app-host service instance to which 
+                                applications should be deployed
+   -PATH_TO_APP_FOLDER          One or multiple paths to folders containing 
+                                manifest.json and xs-app.json files
+   --destination,-d             Create subaccount level destination with
+                                credentials to access HTML5 applications
+   --destination-instance,-di   Create service instance level destination with 
+                                credentials to access HTML5 applications
+   --runtime,-rt                Runtime service for which conventional URLs of 
+                                applications will be shown. Default value is 'cpp'
+   --service,-s                 Create subaccount level destination with
+                                credentials of the service instance
+   --name,-n                    Use app-host service instance with specified name
+   --redeploy,-r                Redeploy HTML5 applications. All applications
+                                should be previously deployed to the same service 
+                                instance.
 ```
 
 #### html5-delete
