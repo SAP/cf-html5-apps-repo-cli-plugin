@@ -139,6 +139,8 @@ func (c *HTML5Command) GetDestinationContext(context Context, destinationInstanc
 		log.Tracef("Using service instance of 'destination' service 'lite' plan: %+v\n", destinationServiceInstances[0])
 	}
 
+	// TODO: chech if there is an existing service key and use it, if found
+
 	// Create service key
 	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
 	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[0].GUID)

@@ -20,6 +20,10 @@ It allows you to:
 - Push one or multiple applications using existing service instances
   of `app-host` plan, or create new ones for you on-the-fly
 
+CF HTML5 Applications Repository CLI Plugin is licensed under the Apache License, Version 2.0 - see [LICENSE](LICENSE).
+It also contains third-party open source modules. See the list and respective licenses in [THIRDPARTY.txt](THIRDPARTY.txt).
+Third-party module license information is also available in machine-readable format in the [.reuse/dep5](.reuse/dep5) file.
+
 ## Prerequisites
 
 - [Download](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html) and install Cloud Foundry CLI (≥6.36.1).
