@@ -1,4 +1,5 @@
 [![GoDoc](https://godoc.org/github.com/SAP/cf-html5-apps-repo-cli-plugin?status.svg)](https://godoc.org/github.com/SAP/cf-html5-apps-repo-cli-plugin)
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP/cf-html5-apps-repo-cli-plugin)](https://api.reuse.software/info/github.com/SAP/cf-html5-apps-repo-cli-plugin)
 
 # CF HTML5 Applications Repository CLI Plugin
 
