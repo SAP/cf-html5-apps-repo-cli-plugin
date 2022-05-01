@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Support `-di '*'` for `html5-list` command to list html5 applications available via all 
+  service instance level destinations of all destination service instances in current space
+
 ## [1.4.6] - 2021-02-16
 ### Added
 - Support `-rt` flag for `html5-list` and `html5-push` commands

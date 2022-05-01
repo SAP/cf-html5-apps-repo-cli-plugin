@@ -1,5 +1,5 @@
 NAME=cf-html5-apps-repo-cli-plugin
-VERSION=1.4.6
+VERSION=1.4.7
 
 # Build the project
 all: clean build install
@@ -8,7 +8,7 @@ clean:
 	rm -f ${NAME}
 
 build:
-	go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" 
+	GO111MODULE=off go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" 
 
 install:
 	cf install-plugin -f ${NAME}
@@ -16,9 +16,9 @@ install:
 release:
 	rm -rf dist 
 	mkdir dist
-	GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-amd64
-	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-amd64
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-windows-amd64.exe
+	GO111MODULE=off GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-amd64
+	GO111MODULE=off GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-amd64
+	GO111MODULE=off GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-windows-amd64.exe
 	@echo "===================="
 	@echo "- authors:"
 	@echo "  - contact: micellius@gmail.com"

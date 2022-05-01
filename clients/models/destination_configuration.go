@@ -7,17 +7,18 @@ type DestinationListDestinationsResponse = []DestinationConfiguration
 
 // DestinationConfiguration destination configuration object
 type DestinationConfiguration struct {
-	Name                string `json:"Name,omitempty"`
-	Description         string `json:"Description,omitempty"`
-	Type                string `json:"Type,omitempty"`
-	URL                 string `json:"URL,omitempty"`
-	Authentication      string `json:"Authentication,omitempty"`
-	ProxyType           string `json:"ProxyType,omitempty"`
-	TokenServiceURL     string `json:"tokenServiceURL,omitempty"`
-	TokenServiceURLType string `json:"tokenServiceURLType,omitempty"`
-	ClientID            string `json:"clientId,omitempty"`
-	ClientSecret        string `json:"clientSecret,omitempty"`
-	Properties          map[string]string
+	Name                           string `json:"Name,omitempty"`
+	Description                    string `json:"Description,omitempty"`
+	Type                           string `json:"Type,omitempty"`
+	URL                            string `json:"URL,omitempty"`
+	Authentication                 string `json:"Authentication,omitempty"`
+	ProxyType                      string `json:"ProxyType,omitempty"`
+	TokenServiceURL                string `json:"tokenServiceURL,omitempty"`
+	TokenServiceURLType            string `json:"tokenServiceURLType,omitempty"`
+	ClientID                       string `json:"clientId,omitempty"`
+	ClientSecret                   string `json:"clientSecret,omitempty"`
+	Properties                     map[string]string
+	DestinationServiceInstanceName string
 }
 
 // MarshalJSON marshals destination configuration

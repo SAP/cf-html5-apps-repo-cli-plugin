@@ -211,7 +211,12 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 	}
 
 	// Get Destination context
-	destinationContext, err := c.GetDestinationContext(context, destinationInstance)
+	var destinationContext DestinationContext
+	if destinationInstance != "*" {
+		destinationContext, err = c.GetDestinationContext(context, destinationInstance)
+	} else {
+		destinationContext, err = c.GetDestinationContext(context, "")
+	}
 	if err != nil {
 		ui.Failed(err.Error())
 		return Failure
@@ -219,13 +224,52 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 
 	var destinations models.DestinationListDestinationsResponse
 	if destinationInstance != "" {
-		// List service instance destinations
-		destinations, err = clients.ListServiceInstanceDestinations(
-			*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
-			destinationContext.DestinationServiceInstanceKeyToken)
-		if err != nil {
-			ui.Failed("Could not get list of service instance destinations: %s", err.Error())
-			return Failure
+		if destinationInstance != "*" {
+			destinations, err = clients.ListServiceInstanceDestinations(
+				*destinationContext.DestinationServiceInstanceKey.Credentials.URI,
+				destinationContext.DestinationServiceInstanceKeyToken)
+			if err != nil {
+				ui.Failed("Could not get list of service instance destinations: %s", err.Error())
+				return Failure
+			}
+			// Add destination service instance name to each destination
+			for idx := range destinations {
+				(&destinations[idx]).DestinationServiceInstanceName = destinationContext.DestinationServiceInstances[0].Name
+			}
+		} else {
+			for _, destinationServiceInstance := range destinationContext.DestinationServiceInstances {
+				var destinationInstanceContext DestinationContext
+				if destinationInstance != destinationServiceInstance.Name {
+					// Get Destination context
+					destinationInstanceContext, err = c.GetDestinationContext(context, destinationServiceInstance.Name)
+					if err != nil {
+						ui.Failed(err.Error())
+						return Failure
+					}
+				} else {
+					destinationInstanceContext = destinationContext
+				}
+				// List service instance destinations
+				destinationsList, err := clients.ListServiceInstanceDestinations(
+					*destinationInstanceContext.DestinationServiceInstanceKey.Credentials.URI,
+					destinationInstanceContext.DestinationServiceInstanceKeyToken)
+				if err != nil {
+					ui.Failed("Could not get list of service instance destinations: %s", err.Error())
+					return Failure
+				}
+				// Add destination service instance name to each destination
+				for _, destination := range destinationsList {
+					destination.DestinationServiceInstanceName = destinationServiceInstance.Name
+					log.Tracef("Setting destination service instance name to '%s' for destination %+v\n", destinationServiceInstance.Name, destination)
+					destinations = append(destinations, destination)
+				}
+				// Clean-up destination context
+				err = c.CleanDestinationContext(destinationInstanceContext)
+				if err != nil {
+					ui.Failed(err.Error())
+					return Failure
+				}
+			}
 		}
 		log.Tracef("List of service instance destinations: %+v\n", destinations)
 	} else {
@@ -242,7 +286,7 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 
 	// Table columns
 	columns := make([]string, 0)
-	columns = append(columns, "name", "version", "app-host-id", "service name", "destination name", "last changed")
+	columns = append(columns, "name", "version", "app-host-id", "service name", "destination name", "destination service name", "last changed")
 	if showUrls {
 		columns = append(columns, "url")
 	}
@@ -303,8 +347,9 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 							row[3] = terminal.FailureColor(serviceName)
 							row[4] = terminal.FailureColor(destination.Name)
 							row[5] = terminal.FailureColor("-")
+							row[6] = terminal.FailureColor(destination.DestinationServiceInstanceName)
 							if showUrls {
-								row[6] = terminal.FailureColor("-")
+								row[7] = terminal.FailureColor("-")
 							}
 							rows = append(rows, row)
 							continue
@@ -324,13 +369,14 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 						row[2] = appHostGUID
 						row[3] = serviceName
 						row[4] = destination.Name
-						row[5] = application.ChangedOn
+						row[5] = destination.DestinationServiceInstanceName
+						row[6] = application.ChangedOn
 						if showUrls {
 							destinationInstanceGUID := ""
 							if destinationInstance != "" {
 								destinationInstanceGUID = destinationContext.DestinationServiceInstances[0].GUID + "."
 							}
-							row[6] = html5Context.GetRuntimeURL(runtime) + "/" + destinationInstanceGUID + strings.Replace(serviceName, ".", "", -1) +
+							row[7] = html5Context.GetRuntimeURL(runtime) + "/" + destinationInstanceGUID + strings.Replace(serviceName, ".", "", -1) +
 								"." + application.ApplicationName + "-" + application.ApplicationVersion + "/"
 						}
 						rows = append(rows, row)
