@@ -646,25 +646,33 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNam
 		return Failure
 	}
 
+	rateLimiter := make(chan int, maxConcurrentConnections)
+
 	// Get files size and etag
 	start := time.Now()
 	metas := make([]chan models.HTML5ApplicationFileMetadata, len(files))
 	for idx := range files {
 		metas[idx] = make(chan models.HTML5ApplicationFileMetadata)
-		go clients.GetFileMeta(
-			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-			files[idx].FilePath,
-			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostID,
-			metas[idx])
+		go func(idx int) {
+			rateLimiter <- idx
+			clients.GetFileMeta(
+				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				files[idx].FilePath,
+				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
+				appHostID,
+				metas[idx])
+		}(idx)
 	}
-	for idx := range files {
+
+	for i := 0; i < len(files); i++ {
+		var idx int = <-rateLimiter
 		files[idx].FileMetadata = <-metas[idx]
 		if files[idx].FileMetadata.Error != nil {
 			ui.Failed("Could not get of file metadata for file %s: %+v", files[idx].FilePath, files[idx].FileMetadata.Error)
 			return Failure
 		}
 	}
+
 	secs := time.Since(start).Seconds()
 	log.Tracef("Fetching files metadata took: %.2fs\n", secs)
 

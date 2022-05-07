@@ -221,11 +221,11 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 	// Get files
 	filesChannels := make([]chan models.HTML5ApplicationFileContent, len(allFiles))
 	for idx, file := range allFiles {
-		rateLimiter <- 1
 		log.Tracef("Getting content of file %s\n", file.FilePath)
 		filesChannel := make(chan models.HTML5ApplicationFileContent, 1)
 		filesChannels[idx] = filesChannel
 		go func(file models.HTML5ApplicationFile, idx int) {
+			rateLimiter <- idx
 			clients.GetFileContent(
 				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
 				file.FilePath,
@@ -233,12 +233,13 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 				appHostGUID,
 				filesChannel)
 			log.Tracef("Recieved content of file %s\n", file.FilePath)
-			<-rateLimiter
 		}(file, idx)
 	}
 
 	// Save files
-	for idx, file := range allFiles {
+	for i := 0; i < len(allFiles); i++ {
+		var idx int = <-rateLimiter
+		file := allFiles[idx]
 		fileContent := <-filesChannels[idx]
 		if fileContent.Error != nil {
 			ui.Failed("Could not get file contents of %s: %+v", file.FilePath, err)
@@ -468,22 +469,30 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 		cwd = string(cwd[:len(cwd)-1])
 	}
 
+	// Rate limiter for cuncurrent connections
+	rateLimiter := make(chan int, maxConcurrentConnections)
+
 	// Get files
 	filesChannels := make([]chan models.HTML5ApplicationFileContent, len(files))
 	for idx, file := range files {
 		log.Tracef("Getting content of file %s\n", file.FilePath)
 		filesChannel := make(chan models.HTML5ApplicationFileContent)
 		filesChannels[idx] = filesChannel
-		go clients.GetFileContent(
-			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
-			file.FilePath,
-			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
-			appHostGUID,
-			filesChannel)
+		go func(file models.HTML5ApplicationFile, idx int) {
+			rateLimiter <- idx
+			clients.GetFileContent(
+				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				file.FilePath,
+				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
+				appHostGUID,
+				filesChannel)
+		}(file, idx)
 	}
 
 	// Save files
-	for idx, file := range files {
+	for i := 0; i < len(files); i++ {
+		var idx int = <-rateLimiter
+		file := files[idx]
 		fileContent := <-filesChannels[idx]
 		if fileContent.Error != nil {
 			ui.Failed("Could not get file contents of %s: %+v", file.FilePath, err)
