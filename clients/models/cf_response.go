@@ -93,6 +93,16 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 				credentials.SapCloudService = &v
 			case "sap.cloud.service.alias":
 				credentials.SapCloudServiceAlias = &v
+			case "certificate":
+				if credentials.UAA == nil {
+					credentials.UAA = &CFUAA{}
+				}
+				credentials.UAA.Certificate = v
+			case "certurl":
+				if credentials.UAA == nil {
+					credentials.UAA = &CFUAA{}
+				}
+				credentials.UAA.CertURL = v
 			case "clientid":
 				if credentials.UAA == nil {
 					credentials.UAA = &CFUAA{}
@@ -103,11 +113,21 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 					credentials.UAA = &CFUAA{}
 				}
 				credentials.UAA.ClientSecret = v
+			case "credential-type":
+				if credentials.UAA == nil {
+					credentials.UAA = &CFUAA{}
+				}
+				credentials.UAA.CredentialType = v
 			case "identityzone":
 				if credentials.UAA == nil {
 					credentials.UAA = &CFUAA{}
 				}
 				credentials.UAA.IdentityZone = v
+			case "key":
+				if credentials.UAA == nil {
+					credentials.UAA = &CFUAA{}
+				}
+				credentials.UAA.Key = v
 			case "url":
 				if credentials.UAA == nil {
 					credentials.UAA = &CFUAA{}
@@ -127,12 +147,20 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 					switch vv := uaaValue.(type) {
 					case string:
 						switch uaaKey {
+						case "certificate":
+							credentials.UAA.Certificate = vv
+						case "certurl":
+							credentials.UAA.CertURL = vv
 						case "clientid":
 							credentials.UAA.ClientID = vv
 						case "clientsecret":
 							credentials.UAA.ClientSecret = vv
+						case "credential-type":
+							credentials.UAA.CredentialType = vv
 						case "identityzone":
 							credentials.UAA.IdentityZone = vv
+						case "key":
+							credentials.UAA.Key = vv
 						case "url":
 							credentials.UAA.URL = vv
 						case "xsappname":
@@ -184,11 +212,15 @@ func (credentials *CFCredentials) UnmarshalJSON(data []byte) error {
 
 // CFUAA Cloud Foundry XSUAA credentials
 type CFUAA struct {
-	ClientID     string `json:"clientid,omitempty"`
-	ClientSecret string `json:"clientsecret,omitempty"`
-	IdentityZone string `json:"identityzone,omitempty"`
-	URL          string `json:"url,omitempty"`
-	XSAPPNAME    string `json:"xsappname,omitempty"`
+	Certificate    string `json:"certificate,omitempty"`
+	CertURL        string `json:"certurl,omitempty"`
+	ClientID       string `json:"clientid,omitempty"`
+	ClientSecret   string `json:"clientsecret,omitempty"`
+	CredentialType string `json:"credential-type,omitempty"`
+	IdentityZone   string `json:"identityzone,omitempty"`
+	Key            string `json:"key,omitempty"`
+	URL            string `json:"url,omitempty"`
+	XSAPPNAME      string `json:"xsappname,omitempty"`
 }
 
 // CFLastOperation Cloud Foundry last operation
