@@ -109,7 +109,7 @@ func (c *DeleteCommand) DeleteServiceInstancesContent(appHostGUIDs []string, app
 	for _, appHostGUID := range appHostGUIDs {
 		// Create service key for DT
 		log.Tracef("Creating service key for app-host-id '%s'\n", appHostGUID)
-		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID)
+		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID, nil)
 		if err != nil {
 			ui.Failed("Could not create service key for service instance with id '%s' : %+v\n", appHostGUID, err)
 			return Failure

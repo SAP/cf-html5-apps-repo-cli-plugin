@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support `-di '*'` for `html5-list` command to list html5 applications available via all 
   service instance level destinations of all destination service instances in current space
 - Support mTLS connection to XSUAA service, for service keys with `credential-type=x509`
+- Allow to provide service key configuration for `html5-apps-repo` service `app-runtime`
+  plan via `HTML5_APP_RUNTIME_KEY_PARAMETERS` environment variable. E.g. to force creation
+  of `x509` credentials.
 
 ### Fixed
 - Rate limit number of cuncurrent connections in `html5-get` and `html5-list` commands 

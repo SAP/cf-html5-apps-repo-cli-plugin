@@ -537,7 +537,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 
 		// Create service key for DT
 		log.Tracef("Creating service key for app-host-id '%s'\n", appHostGUID)
-		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID)
+		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID, nil)
 		if err != nil {
 			ui.Failed("Could not create service key for service instance with id '%s' : %+v", appHostGUID, err)
 			return Failure
@@ -684,7 +684,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		}
 		// XSUAA service key
 		log.Tracef("Creating service key of 'xsuaa' service '%s' plan: %+v\n", xsuaaServicePlan.Name, xsuaaServiceInstance)
-		xsuaaServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, xsuaaServiceInstance.GUID)
+		xsuaaServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, xsuaaServiceInstance.GUID, nil)
 		if err != nil {
 			ui.Failed("Could not create XSUAA service key : %+v", err)
 			return Failure
@@ -734,7 +734,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 		// Create business service instance key if needed
 		if len(businessServiceKeys) == 0 {
 			log.Tracef("No existing service keys for service instance '%s' found, creatng new one\n", businessServiceName)
-			businessServiceKey, err := clients.CreateServiceKey(c.CliConnection, businessServiceInstance.GUID)
+			businessServiceKey, err := clients.CreateServiceKey(c.CliConnection, businessServiceInstance.GUID, nil)
 			if err != nil {
 				ui.Failed("Could not create service instance key for service '%s': %s", businessServiceName, err.Error())
 				return Failure

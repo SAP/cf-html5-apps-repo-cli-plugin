@@ -13,7 +13,7 @@ import (
 )
 
 // CreateServiceKey create Cloud Foundry service key
-func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID string) (*models.CFServiceKey, error) {
+func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID string, parameters interface{}) (*models.CFServiceKey, error) {
 	var serviceKey *models.CFServiceKey
 	var responseObject models.CFResource
 	var errorResponseObject models.CFErrorResponse
@@ -22,10 +22,20 @@ func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID st
 	var err error
 	var url string
 	var body string
+	var serviceKeyParameters string
 
 	t := strconv.FormatInt(time.Now().Unix(), 10)
 	url = "/v2/service_keys"
-	body = "'{\"name\":\"html5-key-" + t + "\",\"service_instance_guid\":\"" + serviceInstanceGUID + "\"}'"
+	if parameters != nil {
+		parametersBytes, err := json.Marshal(parameters)
+		if err != nil {
+			return nil, err
+		}
+		serviceKeyParameters = "\"parameters\":" + string(parametersBytes) + ","
+	} else {
+		serviceKeyParameters = ""
+	}
+	body = "'{" + serviceKeyParameters + "\"name\":\"html5-key-" + t + "\",\"service_instance_guid\":\"" + serviceInstanceGUID + "\"}'"
 
 	log.Tracef("Making request to: %s\n", url)
 	responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url, "-X", "POST", "-d", body)

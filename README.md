@@ -277,6 +277,11 @@ The following are supported:
   * `HTML5_SERVICE_NAME` - name of the service in CF marketplace (default: `html5-apps-repo`)
   * `HTML5_RUNTIME_URL` - URL of HTML5 runtime to serve business service 
     destinations (default: `https://<tenant>.cpp.<landscape_url>`)
+  * `HTML5_APP_RUNTIME_KEY_PARAMETERS` - JSON string with parameters to be used, when service key of 
+    `html5-apps-repo` service `app-runtime` plan is created. E.g. to force creation of `x509` credentials:
+    ```
+    HTML5_APP_RUNTIME_KEY_PARAMETERS='{"xsuaa":{"credential-type":"x509","x509":{"key-length":2048,"validity":7,"validity-type":"DAYS"}}}'
+    ```
 
 ## Troubleshooting
 

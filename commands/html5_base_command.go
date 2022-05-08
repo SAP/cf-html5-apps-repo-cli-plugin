@@ -143,7 +143,7 @@ func (c *HTML5Command) GetDestinationContext(context Context, destinationInstanc
 
 	// Create service key
 	log.Tracef("Creating service key for 'destination' service 'lite' plan\n")
-	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[0].GUID)
+	destinationServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, destinationServiceInstances[0].GUID, nil)
 	if err != nil {
 		return destinationContext, fmt.Errorf("Could not create service key of %s service instance: %s",
 			destinationServiceInstances[0].Name,
@@ -304,8 +304,17 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 
 	// Create service key if needed
 	if html5Context.HTML5AppRuntimeServiceInstanceKey == nil {
+		var keyParams interface{}
+		keyParamsJson := os.Getenv("HTML5_APP_RUNTIME_KEY_PARAMETERS")
+		if keyParamsJson != "" {
+			log.Tracef("Using service key configuration %s\n", keyParamsJson)
+			err = json.Unmarshal([]byte(keyParamsJson), &keyParams)
+			if err != nil {
+				return html5Context, errors.New("Service key configuration is not a valid JSON: " + err.Error())
+			}
+		}
 		log.Tracef("Creating service key for %s service\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
-		appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID)
+		appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID, keyParams)
 		if err != nil {
 			return html5Context, errors.New("Could not create service key of " +
 				appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())

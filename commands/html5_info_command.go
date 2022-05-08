@@ -168,7 +168,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []stri
 
 		// Create service key for DT
 		log.Tracef("Creating service key for app-host-id '%s'\n", appHostGUID)
-		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID)
+		serviceKey, err := clients.CreateServiceKey(c.CliConnection, appHostGUID, nil)
 		if err != nil {
 			ui.Failed("Could not create service key for service instance with id '%s' : %+v", appHostGUID, err)
 			return Failure
