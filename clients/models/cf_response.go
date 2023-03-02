@@ -7,52 +7,56 @@ import (
 
 // CFResponse Cloud Foundry response
 type CFResponse struct {
-	TotalResults int          `json:"total_results"`
-	TotalPages   int          `json:"total_pages"`
-	PrevURL      *string      `json:"prev_url,omitempty"`
-	NextURL      *string      `json:"next_url,omitempty"`
-	Resources    []CFResource `json:"resources"`
+	Pagination CFPagination `json:"pagination"`
+	Resources  []CFResource `json:"resources"`
+}
+
+// CFPagination Cloud Foundry resource pagination
+type CFPagination struct {
+	TotalResults int    `json:"total_results"`
+	TotalPages   int    `json:"total_pages"`
+	First        CFLink `json:"first"`
+	Last         CFLink `json:"last"`
+	Next         CFLink `json:"next"`
+	Previous     CFLink `json:"previous"`
 }
 
 // CFResource Cloud Foundry response resource
 type CFResource struct {
-	// metadata
-	Metadata *CFResourceMetadata `json:"metadata,omitempty"`
-
-	// entity
-	Entity *CFResourceEntity `json:"entity,omitempty"`
+	GUID             string                    `json:"guid"`
+	CreatedAt        string                    `json:"created_at"`
+	UpdatedAt        string                    `json:"updated_at"`
+	Name             string                    `json:"name"`
+	Tags             []string                  `json:"tags"`
+	Type             string                    `json:"type"`
+	MaintenanceInfo  CFMaintenanceInfo         `json:"maintenance_info"`
+	IpgradeAvailable bool                      `json:"upgrade_available"`
+	DashboardUrl     string                    `json:"dashboard_url"`
+	LastOperation    CFLastOperation           `json:"last_operation"`
+	Relationships    map[string]CFRelationship `json:"relationships"`
+	Metadata         CFMetadata                `json:"metadata"`
+	Links            map[string]CFLink         `json:"links"`
 }
 
-// CFResourceMetadata Cloud Foundry response resource metadata
-type CFResourceMetadata struct {
-
-	// created at
-	CreatedAt string `json:"created_at,omitempty"`
-
-	// guid
-	GUID string `json:"guid,omitempty"`
-
-	// updated at
-	UpdatedAt string `json:"updated_at,omitempty"`
-
-	// url
-	URL string `json:"url,omitempty"`
+// CFMaintenanceInfo Cloud Foudry response maintenance info
+type CFMaintenanceInfo struct {
+	Version string `json:"version"`
 }
 
-// CFResourceEntity Cloud Foundry response resource entity
-type CFResourceEntity struct {
+// CFRelationship Cloud Foudry response resource relationship
+type CFRelationship struct {
+	Data CFRelationshipData `json:"data"`
+}
 
-	// name
-	Name *string `json:"name,omitempty"`
+// CFRelationshipData Cloud Foudry response resource relationship data
+type CFRelationshipData struct {
+	GUID string `json:"guid"`
+}
 
-	// label
-	Label *string `json:"label,omitempty"`
-
-	// credentials
-	Credentials *CFCredentials `json:"credentials,omitempty"`
-
-	// last operation
-	LastOperation *CFLastOperation `json:"last_operation,omitempty"`
+// CFMetadata Cloud Foundry resource metadata
+type CFMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
 }
 
 // CFEndpoint business service endpoint

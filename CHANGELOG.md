@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   plan via `HTML5_APP_RUNTIME_KEY_PARAMETERS` environment variable. E.g. to force creation
   of `x509` credentials.
 
+### Changed
+- Use CloudFoundry `v3` API instead of `v2` ([#62](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/62))
+
 ### Fixed
 - Rate limit number of cuncurrent connections in `html5-get` and `html5-list` commands 
   to avoid "too many open files" issue.

@@ -25,7 +25,7 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 	}
 
 	servicePlans = make([]models.CFServicePlan, 0)
-	firstURL := "/v2/service_plans?q=service_guid:" + serviceGUID
+	firstURL := "/v3/service_plans?service_offering_guids=" + serviceGUID
 	nextURL = &firstURL
 
 	for nextURL != nil {
@@ -41,9 +41,12 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 		}
 
 		for _, servicePlan := range responseObject.Resources {
-			servicePlans = append(servicePlans, models.CFServicePlan{Name: *servicePlan.Entity.Name, GUID: servicePlan.Metadata.GUID})
+			servicePlans = append(servicePlans, models.CFServicePlan{
+				Name: servicePlan.Name,
+				GUID: servicePlan.GUID,
+			})
 		}
-		nextURL = responseObject.NextURL
+		nextURL = responseObject.Pagination.Next.Href
 	}
 
 	cache.Set("GetServicePlans:"+serviceGUID, servicePlans)

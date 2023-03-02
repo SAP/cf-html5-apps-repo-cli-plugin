@@ -18,7 +18,7 @@ func GetApplication(cliConnection plugin.CliConnection, spaceGUID string, appNam
 	var err error
 	var url string
 
-	url = "/v2/spaces/" + spaceGUID + "/apps?q=name%3A" + appName
+	url = "/v3/apps?names=" + appName
 
 	log.Tracef("Making request to: %s\n", url)
 	responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url)
@@ -35,7 +35,7 @@ func GetApplication(cliConnection plugin.CliConnection, spaceGUID string, appNam
 	} else {
 		return nil, fmt.Errorf("Application with name %s does not exist in current organization and space", appName)
 	}
-	application = &models.CFApplication{GUID: responseObject.Resources[0].Metadata.GUID, Name: *responseObject.Resources[0].Entity.Name}
+	application = &models.CFApplication{GUID: responseObject.Resources[0].GUID, Name: responseObject.Resources[0].Name}
 
 	return application, nil
 }

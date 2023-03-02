@@ -16,10 +16,10 @@ func DeleteServiceKey(cliConnection plugin.CliConnection, serviceKeyGUID string,
 	var url string
 	var responseStrings []string
 	var responseBytes []byte
-	var errorResponseObject models.CFErrorResponse
+	var errorResponse models.CFErrorResponse
 	var currentTry = 1
 
-	url = "/v2/service_keys/" + serviceKeyGUID
+	url = "/v3/service_credential_bindings/" + serviceKeyGUID
 
 	for currentTry <= maxRetryCount {
 		log.Tracef("Making request to (try %d/%d): %s\n", currentTry, maxRetryCount, url)
@@ -31,14 +31,17 @@ func DeleteServiceKey(cliConnection plugin.CliConnection, serviceKeyGUID string,
 		responseBytes = []byte(strings.Join(responseStrings, ""))
 		if len(responseBytes) > 0 {
 			log.Tracef("Response is not empty, maybe error: %+v\n", responseStrings)
-			err = json.Unmarshal(responseBytes, &errorResponseObject)
+			err = json.Unmarshal(responseBytes, &errorResponse)
 			if err != nil {
 				return err
 			}
-			if errorResponseObject.ErrorCode != nil {
+			if len(errorResponse) == 0 {
+				return errors.New(strings.Join(responseStrings, "\n"))
+			}
+			if errorResponse[0].Code > 0 {
 				if currentTry == maxRetryCount {
-					if errorResponseObject.Description != nil {
-						return errors.New(*errorResponseObject.Description)
+					if errorResponse[0].Title != "" || errorResponse[0].Detail != "" {
+						return errors.New(errorResponse[0].Title + " " + errorResponse[0].Detail)
 					}
 					return errors.New(strings.Join(responseStrings, "\n"))
 				}

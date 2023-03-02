@@ -19,7 +19,7 @@ func GetServiceInstancesByNamePrefix(cliConnection plugin.CliConnection, spaceGU
 	var nextURL *string
 
 	serviceInstances = make([]models.CFServiceInstance, 0)
-	firstURL := "/v2/service_instances?q=space_guid:" + spaceGUID
+	firstURL := "/v3/service_instances?space_guids=" + spaceGUID
 	nextURL = &firstURL
 
 	// Remove placeholder
@@ -40,17 +40,17 @@ func GetServiceInstancesByNamePrefix(cliConnection plugin.CliConnection, spaceGU
 		}
 
 		for _, serviceInstance := range responseObject.Resources {
-			name := *serviceInstance.Entity.Name
+			name := serviceInstance.Name
 			if len(name) >= len(serviceInstancesNamePrefix) && name[0:len(serviceInstancesNamePrefix)] == serviceInstancesNamePrefix {
 				serviceInstances = append(serviceInstances, models.CFServiceInstance{
-					Name:          *serviceInstance.Entity.Name,
-					GUID:          serviceInstance.Metadata.GUID,
-					UpdatedAt:     serviceInstance.Metadata.UpdatedAt,
-					LastOperation: *serviceInstance.Entity.LastOperation,
+					Name:          serviceInstance.Name,
+					GUID:          serviceInstance.GUID,
+					UpdatedAt:     serviceInstance.UpdatedAt,
+					LastOperation: serviceInstance.LastOperation,
 				})
 			}
 		}
-		nextURL = responseObject.NextURL
+		nextURL = responseObject.Pagination.Next.Href
 	}
 
 	if len(serviceInstances) == 0 {

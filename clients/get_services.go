@@ -30,7 +30,7 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 	}
 
 	services = make([]models.CFService, 0)
-	firstURL := "/v2/spaces/" + space.Guid + "/services"
+	firstURL := "/v3/service_offerings?space_guids=" + space.Guid
 	nextURL = &firstURL
 
 	for nextURL != nil {
@@ -46,9 +46,12 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 		}
 
 		for _, service := range responseObject.Resources {
-			services = append(services, models.CFService{Name: *service.Entity.Label, GUID: service.Metadata.GUID})
+			services = append(services, models.CFService{
+				Name: service.Name,
+				GUID: service.GUID,
+			})
 		}
-		nextURL = responseObject.NextURL
+		nextURL = responseObject.Pagination.Next.Href
 	}
 
 	cache.Set("GetServices:"+space.Guid, services)

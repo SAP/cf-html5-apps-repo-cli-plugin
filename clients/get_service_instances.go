@@ -23,7 +23,7 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 	for _, servicePlan := range servicePlans {
 		servicePlanGUIDs = append(servicePlanGUIDs, servicePlan.GUID)
 	}
-	firstURL := "/v2/service_instances?q=service_plan_guid%20IN%20" + strings.Join(servicePlanGUIDs, ",") + "%3Bspace_guid:" + spaceGUID
+	firstURL := "/v3/service_instances?service_plan_guids=" + strings.Join(servicePlanGUIDs, ",") + "&space_guids=" + spaceGUID
 	nextURL = &firstURL
 
 	for nextURL != nil {
@@ -40,13 +40,13 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 
 		for _, serviceInstance := range responseObject.Resources {
 			serviceInstances = append(serviceInstances, models.CFServiceInstance{
-				Name:          *serviceInstance.Entity.Name,
-				GUID:          serviceInstance.Metadata.GUID,
-				UpdatedAt:     serviceInstance.Metadata.UpdatedAt,
-				LastOperation: *serviceInstance.Entity.LastOperation,
+				Name:          serviceInstance.Name,
+				GUID:          serviceInstance.GUID,
+				UpdatedAt:     serviceInstance.UpdatedAt,
+				LastOperation: serviceInstance.LastOperation,
 			})
 		}
-		nextURL = responseObject.NextURL
+		nextURL = responseObject.Pagination.Next.Href
 	}
 
 	return serviceInstances, nil

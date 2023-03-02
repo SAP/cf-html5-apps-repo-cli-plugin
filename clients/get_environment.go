@@ -16,7 +16,7 @@ func GetEnvironment(cliConnection plugin.CliConnection, appGUID string) (*models
 	var err error
 	var url string
 
-	url = "/v2/apps/" + appGUID + "/env"
+	url = "/v3/apps/" + appGUID + "/env"
 
 	log.Tracef("Making request to: %s\n", url)
 	responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url)

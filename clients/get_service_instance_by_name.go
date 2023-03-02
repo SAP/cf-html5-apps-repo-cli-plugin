@@ -19,7 +19,7 @@ func GetServiceInstanceByName(cliConnection plugin.CliConnection, spaceGUID stri
 	var nextURL *string
 
 	serviceInstances = make([]models.CFServiceInstance, 0)
-	firstURL := "/v2/service_instances?q=name:" + serviceInstanceName + "&q=space_guid:" + spaceGUID
+	firstURL := "/v3/service_instances?names=" + serviceInstanceName + "&space_guids=" + spaceGUID
 	nextURL = &firstURL
 
 	for nextURL != nil {
@@ -36,13 +36,13 @@ func GetServiceInstanceByName(cliConnection plugin.CliConnection, spaceGUID stri
 
 		for _, serviceInstance := range responseObject.Resources {
 			serviceInstances = append(serviceInstances, models.CFServiceInstance{
-				Name:          *serviceInstance.Entity.Name,
-				GUID:          serviceInstance.Metadata.GUID,
-				UpdatedAt:     serviceInstance.Metadata.UpdatedAt,
-				LastOperation: *serviceInstance.Entity.LastOperation,
+				Name:          serviceInstance.Name,
+				GUID:          serviceInstance.GUID,
+				UpdatedAt:     serviceInstance.UpdatedAt,
+				LastOperation: serviceInstance.LastOperation,
 			})
 		}
-		nextURL = responseObject.NextURL
+		nextURL = responseObject.Pagination.Next.Href
 	}
 
 	if len(serviceInstances) == 0 {
