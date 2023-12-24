@@ -52,6 +52,10 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 				GUID: service.GUID,
 			})
 		}
+		if responseObject.Pagination.Next.Href != nil && *nextURL == *responseObject.Pagination.Next.Href {
+			log.Tracef("Unexpected value of the next page URL (equal to previous): %s\n", *nextURL)
+			break
+		}
 		nextURL = responseObject.Pagination.Next.Href
 	}
 

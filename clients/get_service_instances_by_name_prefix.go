@@ -51,6 +51,10 @@ func GetServiceInstancesByNamePrefix(cliConnection plugin.CliConnection, spaceGU
 				})
 			}
 		}
+		if responseObject.Pagination.Next.Href != nil && *nextURL == *responseObject.Pagination.Next.Href {
+			log.Tracef("Unexpected value of the next page URL (equal to previous): %s\n", *nextURL)
+			break
+		}
 		nextURL = responseObject.Pagination.Next.Href
 	}
 
