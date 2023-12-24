@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Handle CloudFoundry `v3` API pagination correctly ([#63](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/63))
+
 ## [1.4.7] - 2023-03-02
 ### Added
 - Support `-di '*'` for `html5-list` command to list html5 applications available via all 

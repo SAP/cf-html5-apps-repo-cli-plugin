@@ -33,6 +33,7 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 			return nil, err
 		}
 
+		responseObject = models.CFResponse{}
 		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
 		if err != nil {
 			return nil, err

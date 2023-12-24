@@ -40,6 +40,7 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 			return nil, err
 		}
 
+		responseObject = models.CFResponse{}
 		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
 		if err != nil {
 			return nil, err

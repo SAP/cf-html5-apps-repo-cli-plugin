@@ -31,6 +31,7 @@ func DeleteServiceInstance(cliConnection plugin.CliConnection, serviceInstanceGU
 		responseBytes = []byte(strings.Join(responseStrings, ""))
 		if len(responseBytes) > 0 {
 			log.Tracef("Response is not empty, maybe error: %+v\n", responseStrings)
+			errorResponse = models.CFErrorResponse{}
 			err = json.Unmarshal(responseBytes, &errorResponse)
 			if err != nil {
 				return err

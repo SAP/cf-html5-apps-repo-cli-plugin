@@ -29,6 +29,7 @@ func GetServiceKeys(cliConnection plugin.CliConnection, serviceInstanceGUID stri
 			return nil, err
 		}
 
+		responseObject = models.CFResponse{}
 		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
 		if err != nil {
 			return nil, err

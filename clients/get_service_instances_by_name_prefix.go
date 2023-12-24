@@ -34,6 +34,7 @@ func GetServiceInstancesByNamePrefix(cliConnection plugin.CliConnection, spaceGU
 			return serviceInstances, err
 		}
 
+		responseObject = models.CFResponse{}
 		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
 		if err != nil {
 			return serviceInstances, err
