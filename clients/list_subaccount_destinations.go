@@ -4,7 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -21,7 +21,10 @@ func ListSubaccountDestinations(serviceURL string, accessToken string) (models.D
 
 	log.Tracef("Making request to: %s\n", destinationsURL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return destinations, err
+	}
 	request, err = http.NewRequest("GET", destinationsURL, nil)
 	if err != nil {
 		return destinations, err
@@ -34,7 +37,7 @@ func ListSubaccountDestinations(serviceURL string, accessToken string) (models.D
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return destinations, err
 	}

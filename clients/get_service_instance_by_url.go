@@ -34,7 +34,10 @@ func GetServiceInstanceByUrl(cliConnection plugin.CliConnection, url string) (mo
 	request.Header.Set("Authorization", accessToken)
 
 	// Make request
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return serviceInstance, err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return serviceInstance, err

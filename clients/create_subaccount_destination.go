@@ -34,7 +34,10 @@ func CreateSubaccountDestination(serviceURL string, accessToken string, destinat
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return err

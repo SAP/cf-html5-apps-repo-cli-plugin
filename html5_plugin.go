@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	defaultlog "log"
 	"os"
 	"strconv"
@@ -13,11 +13,13 @@ import (
 	"cf-html5-apps-repo-cli-plugin/commands"
 	"cf-html5-apps-repo-cli-plugin/log"
 
+	"cf-html5-apps-repo-cli-plugin/ui"
+
 	"github.com/cloudfoundry/cli/plugin"
 )
 
 // Version is the version of the CLI plugin.
-var Version = "1.4.7"
+var Version = "1.4.8"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}
@@ -42,7 +44,11 @@ func (p *HTML5Plugin) Run(cliConnection plugin.CliConnection, args []string) {
 		log.Fatalln(err)
 	}
 	log.Tracef("Running CloudFoundry html5-plugin %s\n", Version)
-	command.Initialize(command.GetPluginCommand().Name, cliConnection)
+	err = command.Initialize(command.GetPluginCommand().Name, cliConnection)
+	if err != nil {
+		ui.Failed(err.Error())
+		os.Exit(1)
+	}
 	status := command.Execute(args[1:])
 	if status == commands.Failure {
 		os.Exit(1)
@@ -70,7 +76,7 @@ func main() {
 
 func disableStdOut() {
 	defaultlog.SetFlags(0)
-	defaultlog.SetOutput(ioutil.Discard)
+	defaultlog.SetOutput(io.Discard)
 }
 
 func findCommand(name string) (commands.Command, error) {

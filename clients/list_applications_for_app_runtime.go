@@ -21,7 +21,10 @@ func ListApplicationsForAppRuntime(serviceURL string, accessToken string) (model
 
 	log.Tracef("Making request to: %s\n", html5URL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return html5Response, err
+	}
 	request, err = http.NewRequest("GET", html5URL, nil)
 	if err != nil {
 		return html5Response, err

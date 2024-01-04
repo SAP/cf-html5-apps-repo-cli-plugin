@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Respect `cf` CLI TLS settings, including `--skip-ssl-validation` login option as well as `SSL_CERT_FILE` and `SSL_CERT_DIR` environment variables ([#65](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/65))
+
 ### Fixed
 - Handle CloudFoundry `v3` API pagination correctly ([#63](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/63))
+- Don't delete reused service key or binding ([#64](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/64))
 
 ## [1.4.7] - 2023-03-02
 ### Added

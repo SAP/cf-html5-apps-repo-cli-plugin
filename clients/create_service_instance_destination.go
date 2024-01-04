@@ -5,7 +5,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -34,7 +34,10 @@ func CreateServiceInstanceDestination(serviceURL string, accessToken string, des
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return err
@@ -42,7 +45,7 @@ func CreateServiceInstanceDestination(serviceURL string, accessToken string, des
 	defer response.Body.Close()
 
 	if response.StatusCode > 201 {
-		body, err = ioutil.ReadAll(response.Body)
+		body, err = io.ReadAll(response.Body)
 		if err != nil {
 			return fmt.Errorf("Could not create destination: [%s] %+v", response.Status, body)
 		}

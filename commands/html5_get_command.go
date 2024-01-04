@@ -192,7 +192,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 
 	// Get list of applications for app-host-id
 	log.Tracef("Getting list of applications for app-host-id %s\n", appHostGUID)
-	applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+	applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 		html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 		appHostGUID)
 	if err != nil {
@@ -206,7 +206,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 		// Get list of files for app-host-id and app key
 		log.Tracef("Getting list of files for application '%s'\n", appKey)
 		files, err := clients.ListFilesOfApp(
-			*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+			*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 			appKey,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 			appHostGUID)
@@ -227,7 +227,7 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 		go func(file models.HTML5ApplicationFile, idx int) {
 			rateLimiter <- idx
 			clients.GetFileContent(
-				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 				file.FilePath,
 				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 				appHostGUID,
@@ -328,7 +328,7 @@ func (c *GetCommand) GetFileContents(output string, filePath string, appHostName
 	// Get file contents
 	fileContentChan := make(chan models.HTML5ApplicationFileContent)
 	go clients.GetFileContent(
-		*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+		*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 		filePath,
 		html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 		appHostGUID,
@@ -412,7 +412,7 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 	// Find active version
 	if appVersion == "" {
 		log.Tracef("Getting list of applications for app-runtime plan (%+v)\n", html5Context.HTML5AppRuntimeServiceInstances[len(html5Context.HTML5AppRuntimeServiceInstances)-1].Name)
-		applications, err := clients.ListApplicationsForAppRuntime(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI, html5Context.HTML5AppRuntimeServiceInstanceKeyToken)
+		applications, err := clients.ListApplicationsForAppRuntime(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI, html5Context.HTML5AppRuntimeServiceInstanceKeyToken)
 		if err != nil {
 			ui.Failed("Could not get list of applications for app-runtime instance %s: %+v", html5Context.HTML5AppRuntimeServiceInstances[len(html5Context.HTML5AppRuntimeServiceInstances)-1].Name, err)
 			return Failure
@@ -442,7 +442,7 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 
 	// Get list of files
 	files, err := clients.ListFilesOfApp(
-		*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+		*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 		appKey,
 		html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 		appHostGUID)
@@ -481,7 +481,7 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 		go func(file models.HTML5ApplicationFile, idx int) {
 			rateLimiter <- idx
 			clients.GetFileContent(
-				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 				file.FilePath,
 				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 				appHostGUID,

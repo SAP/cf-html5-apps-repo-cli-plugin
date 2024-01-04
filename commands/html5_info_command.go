@@ -201,7 +201,8 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []stri
 			log.Tracef("Service instance '%s' does no contains size metadata\n", appHostGUID)
 
 			// Get list of app-host applications
-			apps, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+			apps, err := clients.ListApplicationsForAppHost(
+				*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 				html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 			if err != nil {
 				ui.Failed("Could not get list of applications for app-host-id '%s': %+v", appHostGUID, err)
@@ -210,7 +211,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []stri
 
 			for _, app := range apps {
 				// Get list of application files
-				files, err := clients.ListFilesOfApp(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				files, err := clients.ListFilesOfApp(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 					app.ApplicationName+"-"+app.ApplicationVersion,
 					html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 				if err != nil {
@@ -224,7 +225,7 @@ func (c *InfoCommand) GetServiceInfos(appHostGUIDs []string, appHostNames []stri
 					rateLimiter <- 1
 					// Get file size
 					go func(file models.HTML5ApplicationFile) {
-						clients.GetFileMeta(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI, file.FilePath,
+						clients.GetFileMeta(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI, file.FilePath,
 							html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID, metaChannel)
 						<-rateLimiter
 					}(file)

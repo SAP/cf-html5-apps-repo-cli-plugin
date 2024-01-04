@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -26,7 +26,10 @@ func DeleteSubaccountDestination(serviceURL string, accessToken string, destinat
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return err
@@ -34,7 +37,7 @@ func DeleteSubaccountDestination(serviceURL string, accessToken string, destinat
 	defer response.Body.Close()
 
 	if response.StatusCode > 201 {
-		body, err = ioutil.ReadAll(response.Body)
+		body, err = io.ReadAll(response.Body)
 		if err != nil {
 			return fmt.Errorf("Could not delete destination: [%s] %+v", response.Status, body)
 		}

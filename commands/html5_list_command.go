@@ -335,7 +335,7 @@ func (c *ListCommand) ListDestinationApps(destinationInstance string, showUrls b
 						serviceName,
 						destination.Name)
 					applications, err := clients.ListApplicationsForAppHost(
-						*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+						*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostGUID)
 					if err != nil {
 						// Invalid app-host-id
@@ -465,7 +465,7 @@ func (c *ListCommand) ListAppApps(appName string, showUrls bool) ExecutionStatus
 	data.Services = make([]Service, 0)
 	for _, serviceInstance := range appHostServiceInstances {
 		log.Tracef("Getting list of applications for app-host plan (%+v)\n", serviceInstance)
-		applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+		applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken, serviceInstance.GUID)
 		if err != nil {
 			ui.Failed("Could not get list of applications for app-host instance %s: %+v", serviceInstance.Name, err)
@@ -508,7 +508,7 @@ func (c *ListCommand) ListAppApps(appName string, showUrls bool) ExecutionStatus
 				for _, appHostID := range AppHostIDs {
 					// Get list of applications for app-host-id
 					log.Tracef("Getting list of applications for service '%s' and app-host-id '%s'\n", serviceName, appHostID)
-					applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+					applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 						html5Context.HTML5AppRuntimeServiceInstanceKeyToken, appHostID)
 					if err != nil {
 						ui.Failed("Could not get list of applications for app-host-id '%s': %+v", appHostID, err)
@@ -620,7 +620,7 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNam
 	// Find active version
 	if appVersion == "" {
 		log.Tracef("Getting list of applications for app-runtime plan (%+v)\n", html5Context.HTML5AppRuntimeServiceInstances[len(html5Context.HTML5AppRuntimeServiceInstances)-1].Name)
-		applications, err := clients.ListApplicationsForAppRuntime(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI, html5Context.HTML5AppRuntimeServiceInstanceKeyToken)
+		applications, err := clients.ListApplicationsForAppRuntime(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI, html5Context.HTML5AppRuntimeServiceInstanceKeyToken)
 		if err != nil {
 			ui.Failed("Could not get list of applications for app-runtime instance %s: %+v", html5Context.HTML5AppRuntimeServiceInstances[len(html5Context.HTML5AppRuntimeServiceInstances)-1].Name, err)
 			return Failure
@@ -637,7 +637,7 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNam
 
 	// Get list of files
 	files, err := clients.ListFilesOfApp(
-		*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+		*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 		appKey,
 		html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 		appHostID)
@@ -656,7 +656,7 @@ func (c *ListCommand) ListAppFiles(appName string, appVersion string, appHostNam
 		go func(idx int) {
 			rateLimiter <- idx
 			clients.GetFileMeta(
-				*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+				*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 				files[idx].FilePath,
 				html5Context.HTML5AppRuntimeServiceInstanceKeyToken,
 				appHostID,
@@ -771,7 +771,7 @@ func (c *ListCommand) ListApps(appHostGUID *string) ExecutionStatus {
 	data.Services = make([]Service, 0)
 	for _, serviceInstance := range appHostServiceInstances {
 		log.Tracef("Getting list of applications for app-host plan (%+v)\n", serviceInstance)
-		applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+		applications, err := clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 			html5Context.HTML5AppRuntimeServiceInstanceKeyToken, serviceInstance.GUID)
 		if err != nil {
 			ui.Failed("Could not get list of applications for app-host instance %s: %+v", serviceInstance.Name, err)

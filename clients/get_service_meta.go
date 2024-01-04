@@ -4,7 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -22,7 +22,11 @@ func GetServiceMeta(serviceURL string, accessToken string, resultChannel chan<- 
 
 	log.Tracef("Making request to: %s\n", html5URL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		resultChannel <- models.HTML5ServiceMeta{Error: err}
+		return
+	}
 	request, err = http.NewRequest("GET", html5URL, nil)
 	if err != nil {
 		resultChannel <- models.HTML5ServiceMeta{Error: err}
@@ -40,7 +44,7 @@ func GetServiceMeta(serviceURL string, accessToken string, resultChannel chan<- 
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		resultChannel <- models.HTML5ServiceMeta{Error: err}
 		return

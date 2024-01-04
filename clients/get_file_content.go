@@ -19,7 +19,11 @@ func GetFileContent(serviceURL string, filePath string, accessToken string, appH
 
 	log.Tracef("Making request to: %s\n", html5URL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		resultChannel <- models.HTML5ApplicationFileContent{Error: err}
+		return
+	}
 	request, err = http.NewRequest("GET", html5URL, nil)
 	if err != nil {
 		resultChannel <- models.HTML5ApplicationFileContent{Error: err}

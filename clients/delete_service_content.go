@@ -17,7 +17,10 @@ func DeleteServiceContent(serviceURL string, accessToken string) error {
 
 	log.Tracef("Making request to: %s\n", html5URL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return err
+	}
 	if request, err = http.NewRequest("DELETE", html5URL, nil); err != nil {
 		return err
 	}

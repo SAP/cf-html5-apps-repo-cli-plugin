@@ -20,14 +20,15 @@ type BaseCommand struct {
 }
 
 // Initialize default initialization method which may be overriden in more specific commands
-func (c *BaseCommand) Initialize(name string, cliConnection plugin.CliConnection) {
-	c.InitializeBase(name, cliConnection)
+func (c *BaseCommand) Initialize(name string, cliConnection plugin.CliConnection) error {
+	return c.InitializeBase(name, cliConnection)
 }
 
 // InitializeBase initializes the command with the specified name and CLI connection.
-func (c *BaseCommand) InitializeBase(name string, cliConnection plugin.CliConnection) {
+func (c *BaseCommand) InitializeBase(name string, cliConnection plugin.CliConnection) error {
 	c.Name = name
 	c.CliConnection = cliConnection
+	return nil
 }
 
 // Dispose default dispose method which may be overriden in more specific commands

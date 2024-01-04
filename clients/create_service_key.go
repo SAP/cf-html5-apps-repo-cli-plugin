@@ -59,7 +59,10 @@ func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID st
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", accessToken)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return nil, err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return nil, err

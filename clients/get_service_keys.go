@@ -53,7 +53,7 @@ func GetServiceKeys(cliConnection plugin.CliConnection, serviceInstanceGUID stri
 		if err != nil {
 			return serviceKeys, err
 		}
-		serviceKeys[idx].Credentials = serviceKeyCredentials
+		(&serviceKeys[idx]).Credentials = serviceKeyCredentials
 	}
 
 	return serviceKeys, nil

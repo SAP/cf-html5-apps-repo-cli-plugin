@@ -36,7 +36,10 @@ func GetJobByUrl(cliConnection plugin.CliConnection, url string) (models.CFJob, 
 	request.Header.Set("Authorization", accessToken)
 
 	// Make request
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return job, err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return job, err

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,13 +33,39 @@ type HTML5Command struct {
 }
 
 // Initialize initializes the command with the specified name and CLI connection
-func (c *HTML5Command) Initialize(name string, cliConnection plugin.CliConnection) {
+func (c *HTML5Command) Initialize(name string, cliConnection plugin.CliConnection) (err error) {
 	log.Tracef("Initializing command '%s'\n", name)
-	c.InitializeBase(name, cliConnection)
+	err = c.InitializeBase(name, cliConnection)
+	if err != nil {
+		return
+	}
+	isInsecure, _ := cliConnection.IsSSLDisabled()
+	if isInsecure {
+		log.Tracef("WARNING: SSL validation is disabled. To enable it login again using 'cf login', without '--skip-ssl-validation' flag\n")
+	}
+
+	// TLS configuration
+	clients.SetInsecure(isInsecure)
+	customCAPath := os.Getenv("SSL_CERT_FILE")
+	if customCAPath == "" {
+		customCAPath = os.Getenv("SSL_CERT_DIR")
+		if customCAPath != "" {
+			customCAPath = filepath.Join(customCAPath, "server.crt")
+		}
+	}
+	if customCAPath != "" {
+		if _, err := os.Stat(customCAPath); err != nil {
+			log.Tracef("Failed to read file with additional root CAs: %s\n", err.Error())
+			return fmt.Errorf("Certificate file %q is not accessible. Please check 'SSL_CERT_FILE' or 'SSL_CERT_DIR' environment variable is pointing to existing file or directory", customCAPath)
+		}
+	}
+	clients.SetCustomCAPath(customCAPath)
+
+	// Cache
 	if os.Getenv("HTML5_CACHE") == "1" {
-		loadCache()
+		return loadCache()
 	} else {
-		clearCache()
+		return clearCache()
 	}
 }
 
@@ -295,15 +322,15 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
 	}
 	if len(appRuntimeServiceInstanceKeys) > 0 {
-		log.Tracef("Found %d service keys for service %s, using: %+v\n",
+		log.Tracef("Found %d service keys for service %s, using service key with GUID=%s\n",
 			len(appRuntimeServiceInstanceKeys),
 			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name,
-			appRuntimeServiceInstanceKeys[0])
-		html5Context.HTML5AppRuntimeServiceInstanceKey = &appRuntimeServiceInstanceKeys[0]
+			appRuntimeServiceInstanceKeys[len(appRuntimeServiceInstanceKeys)-1].GUID)
+		html5Context.HTML5AppRuntimeServiceInstanceKeys = appRuntimeServiceInstanceKeys
 	}
 
 	// Create service key if needed
-	if html5Context.HTML5AppRuntimeServiceInstanceKey == nil {
+	if len(appRuntimeServiceInstanceKeys) == 0 {
 		var keyParams interface{}
 		keyParamsJson := os.Getenv("HTML5_APP_RUNTIME_KEY_PARAMETERS")
 		if keyParamsJson != "" {
@@ -319,18 +346,19 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 			return html5Context, errors.New("Could not create service key of " +
 				appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
 		}
+		html5Context.HTML5AppRuntimeServiceInstanceKeys = append(html5Context.HTML5AppRuntimeServiceInstanceKeys, *appRuntimeServiceInstanceKey)
 		html5Context.HTML5AppRuntimeServiceInstanceKey = appRuntimeServiceInstanceKey
 	}
 
 	// Get app-runtime access token
-	log.Tracef("Getting token for service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKey.Name)
-	appRuntimeServiceInstanceKeyToken, err := clients.GetToken(html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials)
+	log.Tracef("Getting token for service key %s\n", html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Name)
+	appRuntimeServiceInstanceKeyToken, err := clients.GetToken(html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials)
 	if err != nil {
 		return html5Context, errors.New("Could not obtain access token: " + err.Error())
 	}
 	html5Context.HTML5AppRuntimeServiceInstanceKeyToken = appRuntimeServiceInstanceKeyToken
 	log.Tracef("Access token for service key %s: %s\n",
-		html5Context.HTML5AppRuntimeServiceInstanceKey.Name,
+		html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Name,
 		log.Sensitive{Data: appRuntimeServiceInstanceKeyToken})
 
 	// Fill cache
@@ -385,6 +413,8 @@ type HTML5Context struct {
 	// Pointer to html5-apps-repo app-runtime service instance
 	HTML5AppRuntimeServiceInstance *models.CFServiceInstance
 	// Service key of html5-apps-repo app-runtime service plan
+	HTML5AppRuntimeServiceInstanceKeys []models.CFServiceKey
+	// Pointer to html5-apps-repo app-runtime service key
 	HTML5AppRuntimeServiceInstanceKey *models.CFServiceKey
 	// Access token of html5-apps-repo app-runtime service key
 	HTML5AppRuntimeServiceInstanceKeyToken string

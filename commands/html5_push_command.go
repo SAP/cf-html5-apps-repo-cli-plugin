@@ -427,7 +427,7 @@ func (c *PushCommand) PushHTML5Applications(appPaths []string, appHostGUID strin
 					// Fetch list of app-host applications, if they are not already in cache
 					if applications, ok = appHostApplicationsMap[serviceInstance]; !ok {
 						log.Tracef("Getting list of applications for app-host plan (%+v)\n", serviceInstance)
-						applications, err = clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKey.Credentials.URI,
+						applications, err = clients.ListApplicationsForAppHost(*html5Context.HTML5AppRuntimeServiceInstanceKeys[len(html5Context.HTML5AppRuntimeServiceInstanceKeys)-1].Credentials.URI,
 							html5Context.HTML5AppRuntimeServiceInstanceKeyToken, serviceInstance.GUID)
 						if err != nil {
 							ui.Failed("Could not get list of applications for app-host instance %s: %+v", serviceInstance.Name, err)

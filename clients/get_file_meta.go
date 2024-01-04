@@ -20,7 +20,12 @@ func GetFileMeta(serviceURL string, filePath string, accessToken string, appHost
 
 	log.Tracef("Making HEAD request to: %s\n", html5URL)
 
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		metaData.Error = err
+		resultChannel <- metaData
+		return
+	}
 	request, err = http.NewRequest("HEAD", html5URL, nil)
 	if err != nil {
 		metaData.Error = err

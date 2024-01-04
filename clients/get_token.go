@@ -13,7 +13,7 @@ import (
 // GetToken get token
 func GetToken(credentials models.CFCredentials) (string, error) {
 	var token string
-	var httpClient http.Client
+	var httpClient *http.Client
 	var certificate tls.Certificate
 	var response *http.Response
 	var err error
@@ -30,14 +30,10 @@ func GetToken(credentials models.CFCredentials) (string, error) {
 			return "", err
 		}
 
-		httpClient = http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					Certificates: []tls.Certificate{certificate},
-				},
-			},
+		httpClient, err = GetClientWithCertificates([]tls.Certificate{certificate})
+		if err != nil {
+			return "", err
 		}
-
 		response, err = httpClient.PostForm(uaaURL,
 			url.Values{
 				"client_id":     {credentials.UAA.ClientID},

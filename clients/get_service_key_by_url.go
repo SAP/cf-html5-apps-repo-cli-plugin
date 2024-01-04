@@ -5,7 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/cloudfoundry/cli/plugin"
@@ -34,7 +34,10 @@ func GetServiceKeyByUrl(cliConnection plugin.CliConnection, url string) (models.
 	request.Header.Set("Authorization", accessToken)
 
 	// Make request
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return serviceKey, err
+	}
 	response, err = client.Do(request)
 	if err != nil {
 		return serviceKey, err
@@ -42,7 +45,7 @@ func GetServiceKeyByUrl(cliConnection plugin.CliConnection, url string) (models.
 	defer response.Body.Close()
 
 	// Read response body
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return serviceKey, err
 	}

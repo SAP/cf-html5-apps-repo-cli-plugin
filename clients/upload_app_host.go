@@ -60,7 +60,10 @@ func UploadAppHost(serviceURL string, zipFiles []string, accessToken string) err
 
 	// Make request
 	log.Tracef("Making request to: %s\n", html5URL)
-	client := &http.Client{}
+	client, err := GetDefaultClient()
+	if err != nil {
+		return err
+	}
 	request, err := http.NewRequest("PUT", html5URL, body)
 	if err != nil {
 		return err

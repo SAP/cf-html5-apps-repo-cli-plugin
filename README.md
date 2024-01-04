@@ -283,6 +283,11 @@ The following are supported:
     HTML5_APP_RUNTIME_KEY_PARAMETERS='{"xsuaa":{"credential-type":"x509","x509":{"key-length":2048,"validity":7,"validity-type":"DAYS"}}}'
     ```
 
+In addition CF HTML5 Applications Repository CLI Plugin supports the following configuration of Cloud Foundry CLI itself:
+  * `--skip-ssl-validation` - command line argument option of `cf login`
+  * `SSL_CERT_FILE` - environment variable pointing to file with additional signing certificate
+  * `SSL_CERT_DIR` - environment variable pointing to directory with `server.crt` file containing additional signing certificate
+
 ## Troubleshooting
 
 #### Services and Service Keys
