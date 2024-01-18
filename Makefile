@@ -17,7 +17,9 @@ release:
 	rm -rf dist 
 	mkdir dist
 	GO111MODULE=off GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-amd64
+	GO111MODULE=off GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-arm64
 	GO111MODULE=off GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-amd64
+	GO111MODULE=off GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-arm64
 	GO111MODULE=off GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-windows-amd64.exe
 	@echo "===================="
 	@echo "- authors:"

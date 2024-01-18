@@ -41,14 +41,24 @@ cf install-plugin -r CF-Community "html5-plugin"
 
 Alternatively, you can install latest release from GitHub Releases with one of the following commands, depending on you operational system:
 
-#### macOS
+#### macOS (Intel)
 ```bash
 cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-darwin-amd64
 ```
 
-#### Linux
+#### macOS (Apple silicon)
+```bash
+cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-darwin-arm64
+```
+
+#### Linux (amd64)
 ```bash
 cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-linux-amd64
+```
+
+#### Linux (arm64)
+```bash
+cf install-plugin -f https://github.com/SAP/cf-html5-apps-repo-cli-plugin/releases/latest/download/cf-html5-apps-repo-cli-plugin-linux-arm64
 ```
 
 #### Windows
