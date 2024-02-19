@@ -6,7 +6,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -69,11 +69,13 @@ func CreateServiceKey(cliConnection plugin.CliConnection, serviceInstanceGUID st
 	}
 	defer response.Body.Close()
 
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
+	if err != nil {
+		return nil, err
+	}
+
 	if response.StatusCode != 202 {
-		body, err = ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, err
-		}
 		return nil, fmt.Errorf("Could not create service key: [%d] %s", response.StatusCode, string(body))
 	}
 

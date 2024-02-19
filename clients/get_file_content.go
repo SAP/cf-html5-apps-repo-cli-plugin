@@ -3,7 +3,7 @@ package clients
 import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -41,7 +41,8 @@ func GetFileContent(serviceURL string, filePath string, accessToken string, appH
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		resultChannel <- models.HTML5ApplicationFileContent{Error: err}
 		return

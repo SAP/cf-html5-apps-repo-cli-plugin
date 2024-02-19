@@ -38,6 +38,7 @@ func GetFileMeta(serviceURL string, filePath string, accessToken string, appHost
 	}
 	startTime := time.Now()
 	response, err = client.Do(request)
+	log.Trace(log.Response{Head: response})
 	elapsedTime := time.Since(startTime)
 	log.Tracef("Request to %s took %v\n", html5URL, elapsedTime)
 	if err != nil {

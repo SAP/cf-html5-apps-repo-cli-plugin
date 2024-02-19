@@ -53,6 +53,7 @@ func GetServiceKeyDetails(cliConnection plugin.CliConnection, serviceKeyGUID str
 
 	// Read response body
 	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return serviceKey.Credentials, err
 	}

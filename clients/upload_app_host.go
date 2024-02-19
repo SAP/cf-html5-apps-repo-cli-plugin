@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -79,7 +80,7 @@ func UploadAppHost(serviceURL string, zipFiles []string, accessToken string) err
 	} else {
 		// Get response body
 		defer response.Body.Close()
-		body, _ := ioutil.ReadAll(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		bodyString := string(body)
 		log.Tracef("Could not upload files: %+v. Response: [%d] %s\n", zipFiles, response.StatusCode, bodyString)
 		idx := strings.LastIndex(bodyString, ":")

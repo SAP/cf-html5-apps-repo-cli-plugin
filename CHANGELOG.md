@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.4.8] - 2024-02-19
+### Added
+- Support `DEBUG=3` to print raw responses in the trace logs
+
+### Fixed
+- Wait until the CF job of service key or service instrance deletion is completed
+- Create new configuration file on first call of CLI with `HTML5_CACHE=1` flag
+- Handle CloudFoundry `v3` API pagination with absolute next URL
+
 ## [1.4.8] - 2024-01-18
 ### Added
 - Respect `cf` CLI TLS settings, including `--skip-ssl-validation` login option as well as `SSL_CERT_FILE` and `SSL_CERT_DIR` environment variables ([#65](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues/65))

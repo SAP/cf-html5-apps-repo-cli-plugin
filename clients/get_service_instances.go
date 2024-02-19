@@ -16,6 +16,8 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 	var responseStrings []string
 	var err error
 	var nextURL *string
+	var pathStart int
+	var pathSlice string
 	var servicePlanGUIDs []string
 
 	serviceInstances = make([]models.CFServiceInstance, 0)
@@ -34,7 +36,9 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 		}
 
 		responseObject = models.CFResponse{}
-		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+		body := []byte(strings.Join(responseStrings, ""))
+		log.Trace(log.Response{Body: body})
+		err = json.Unmarshal(body, &responseObject)
 		if err != nil {
 			return nil, err
 		}
@@ -52,6 +56,13 @@ func GetServiceInstances(cliConnection plugin.CliConnection, spaceGUID string, s
 			break
 		}
 		nextURL = responseObject.Pagination.Next.Href
+		if nextURL != nil {
+			pathStart = strings.Index(*nextURL, "/v3/service_instances")
+			if pathStart > 0 {
+				pathSlice = (*nextURL)[pathStart:]
+				nextURL = &pathSlice
+			}
+		}
 	}
 
 	return serviceInstances, nil

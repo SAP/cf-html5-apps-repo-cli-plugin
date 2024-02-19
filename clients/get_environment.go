@@ -24,7 +24,10 @@ func GetEnvironment(cliConnection plugin.CliConnection, appGUID string) (*models
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+	body := []byte(strings.Join(responseStrings, ""))
+	log.Trace(log.Response{Body: body})
+
+	err = json.Unmarshal(body, &responseObject)
 	if err != nil {
 		return nil, err
 	}

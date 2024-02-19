@@ -38,6 +38,7 @@ func ListServiceInstanceDestinations(serviceURL string, accessToken string) (mod
 	// Get response body
 	defer response.Body.Close()
 	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return destinations, err
 	}

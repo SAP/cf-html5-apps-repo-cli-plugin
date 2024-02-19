@@ -5,7 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"crypto/tls"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -44,7 +44,12 @@ func GetToken(credentials models.CFCredentials) (string, error) {
 
 		log.Tracef("Making request to: %s\n", uaaURL)
 
-		response, err = http.PostForm(uaaURL,
+		httpClient, err = GetDefaultClient()
+		if err != nil {
+			return "", err
+		}
+
+		response, err = httpClient.PostForm(uaaURL,
 			url.Values{
 				"client_id":     {credentials.UAA.ClientID},
 				"client_secret": {credentials.UAA.ClientSecret},
@@ -58,7 +63,8 @@ func GetToken(credentials models.CFCredentials) (string, error) {
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return "", err
 	}

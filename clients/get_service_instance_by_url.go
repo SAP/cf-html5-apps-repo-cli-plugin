@@ -5,7 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/cloudfoundry/cli/plugin"
@@ -45,7 +45,8 @@ func GetServiceInstanceByUrl(cliConnection plugin.CliConnection, url string) (mo
 	defer response.Body.Close()
 
 	// Read response body
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return serviceInstance, err
 	}

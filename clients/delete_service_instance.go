@@ -1,11 +1,11 @@
 package clients
 
 import (
-	models "cf-html5-apps-repo-cli-plugin/clients/models"
+	"bytes"
 	"cf-html5-apps-repo-cli-plugin/log"
-	"encoding/json"
-	"errors"
-	"strings"
+	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/cloudfoundry/cli/plugin"
 )
@@ -14,43 +14,59 @@ import (
 func DeleteServiceInstance(cliConnection plugin.CliConnection, serviceInstanceGUID string, maxRetryCount int) error {
 	var err error
 	var url string
-	var responseStrings []string
-	var responseBytes []byte
-	var errorResponse models.CFErrorResponse
 	var currentTry = 1
+	var request *http.Request
+	var response *http.Response
+	var body []byte
+	var apiEndpoint string
+	var accessToken string
 
-	url = "/v3/service_instances/" + serviceInstanceGUID
+	apiEndpoint, err = cliConnection.ApiEndpoint()
+	if err != nil {
+		return err
+	}
+
+	accessToken, err = cliConnection.AccessToken()
+	if err != nil {
+		return err
+	}
+
+	url = apiEndpoint + "/v3/service_instances/" + serviceInstanceGUID
 
 	for currentTry <= maxRetryCount {
-		log.Tracef("Making request to (try %d/%d): %s\n", currentTry, maxRetryCount, url)
-		responseStrings, err = cliConnection.CliCommandWithoutTerminalOutput("curl", url, "-X", "DELETE")
+		log.Tracef("Making request to: %s (try %d/%d)\n", url, currentTry, maxRetryCount)
+		request, err = http.NewRequest("DELETE", url, bytes.NewBuffer([]byte{}))
+		if err != nil {
+			return err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", accessToken)
+
+		client, err := GetDefaultClient()
+		if err != nil {
+			return err
+		}
+		response, err = client.Do(request)
+		if err != nil {
+			return err
+		}
+		defer response.Body.Close()
+
+		body, err = io.ReadAll(response.Body)
+		log.Trace(log.Response{Head: response, Body: body})
 		if err != nil {
 			return err
 		}
 
-		responseBytes = []byte(strings.Join(responseStrings, ""))
-		if len(responseBytes) > 0 {
-			log.Tracef("Response is not empty, maybe error: %+v\n", responseStrings)
-			errorResponse = models.CFErrorResponse{}
-			err = json.Unmarshal(responseBytes, &errorResponse)
-			if err != nil {
-				return err
-			}
-			if len(errorResponse) == 0 {
-				return errors.New(strings.Join(responseStrings, "\n"))
-			}
-			if errorResponse[0].Code > 0 {
-				if currentTry == maxRetryCount {
-					if errorResponse[0].Title != "" || errorResponse[0].Detail != "" {
-						return errors.New(errorResponse[0].Title + " " + errorResponse[0].Detail)
-					}
-					return errors.New(strings.Join(responseStrings, "\n"))
-				}
-				currentTry++
+		if response.StatusCode != 202 {
+			if currentTry != maxRetryCount {
 				continue
 			}
+			return fmt.Errorf("Could not delete service instance: [%d] %s", response.StatusCode, string(body[:]))
 		} else {
-			return nil
+			// Pool job
+			_, err = PollJob(cliConnection, response.Header.Get("Location"))
+			return err
 		}
 	}
 

@@ -19,7 +19,7 @@ import (
 )
 
 // Version is the version of the CLI plugin.
-var Version = "1.4.8"
+var Version = "1.4.9"
 
 // HTML5Plugin represents a cf CLI plugin for working with HTML5 Application Repository service
 type HTML5Plugin struct{}

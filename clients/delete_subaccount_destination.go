@@ -41,6 +41,8 @@ func DeleteSubaccountDestination(serviceURL string, accessToken string, destinat
 		if err != nil {
 			return fmt.Errorf("Could not delete destination: [%s] %+v", response.Status, body)
 		}
+	} else {
+		log.Trace(log.Response{Head: response})
 	}
 
 	return nil

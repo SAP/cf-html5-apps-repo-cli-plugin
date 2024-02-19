@@ -2,15 +2,19 @@ package log
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 )
 
-// Debug true if environment variable DEBUG is set to 1 or 2
-var Debug = (os.Getenv("DEBUG") == "1" || os.Getenv("DEBUG") == "2")
+// Debug true if environment variable DEBUG is set to 1, 2 or 3
+var Debug = (os.Getenv("DEBUG") == "1" || os.Getenv("DEBUG") == "2" || os.Getenv("DEBUG") == "3")
 
-// DebugSensitive true if environment variable DEBUG is set to 2
-var DebugSensitive = (os.Getenv("DEBUG") == "2")
+// DebugSensitive true if environment variable DEBUG is set to 2 or 3
+var DebugSensitive = (os.Getenv("DEBUG") == "2" || os.Getenv("DEBUG") == "3")
+
+// DebugResponse true if environment variable DEBUG is set to 3
+var DebugResponse = os.Getenv("DEBUG") == "3"
 
 // Sensitive is a wrapper around any sensitive data
 // that should not be logged, except the corresponding
@@ -24,6 +28,29 @@ func (s Sensitive) String() string {
 		return fmt.Sprintf("+%v", s.Data)
 	}
 	return "[ SENSITIVE DATA ]"
+}
+
+type Response struct {
+	Head *http.Response
+	Body []byte
+}
+
+func (r Response) String() (message string) {
+	if !DebugResponse {
+		return "[ RESPONSE OMITTED ]\n"
+	}
+	if r.Head != nil {
+		message += r.Head.Status + "\n"
+		for key, values := range r.Head.Header {
+			for _, val := range values {
+				message += key + ": " + val + "\n"
+			}
+		}
+	}
+	if r.Body != nil {
+		message += "\n" + string(r.Body[:]) + "\n"
+	}
+	return
 }
 
 // Exiter exiter interface

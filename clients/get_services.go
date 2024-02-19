@@ -17,6 +17,8 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 	var responseStrings []string
 	var err error
 	var nextURL *string
+	var pathStart int
+	var pathSlice string
 
 	space, err := cliConnection.GetCurrentSpace()
 	if err != nil {
@@ -41,9 +43,15 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 		}
 
 		responseObject = models.CFResponse{}
-		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+		body := []byte(strings.Join(responseStrings, ""))
+		log.Trace(log.Response{Body: body})
+		err = json.Unmarshal(body, &responseObject)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(responseObject.Resources) == 0 {
+			log.Tracef("Unexpected response from %q (no resources): %s\n", *nextURL, string(body[:]))
 		}
 
 		for _, service := range responseObject.Resources {
@@ -52,13 +60,23 @@ func GetServices(cliConnection plugin.CliConnection) ([]models.CFService, error)
 				GUID: service.GUID,
 			})
 		}
-		if responseObject.Pagination.Next.Href != nil && *nextURL == *responseObject.Pagination.Next.Href {
+
+		if responseObject.Pagination.Next.Href != nil && *responseObject.Pagination.Next.Href == *nextURL {
 			log.Tracef("Unexpected value of the next page URL (equal to previous): %s\n", *nextURL)
 			break
 		}
+
 		nextURL = responseObject.Pagination.Next.Href
+		if nextURL != nil {
+			pathStart = strings.Index(*nextURL, "/v3/service_offerings")
+			if pathStart > 0 {
+				pathSlice = (*nextURL)[pathStart:]
+				nextURL = &pathSlice
+			}
+		}
 	}
 
+	log.Tracef("Updating cache with %d service offerings\n", len(services))
 	cache.Set("GetServices:"+space.Guid, services)
 
 	return services, nil

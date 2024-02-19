@@ -19,7 +19,7 @@ func PollJob(cliConnection plugin.CliConnection, url string) (models.CFJob, erro
 
 	for i := 1; i <= MAX_ATTEMPTS; i++ {
 		<-time.After(time.Duration(i/2) * time.Second)
-		log.Tracef("Getting create service instance job by URL: %s (try %d/%d)\n", url, i, MAX_ATTEMPTS)
+		log.Tracef("Getting job by URL: %s (try %d/%d)\n", url, i, MAX_ATTEMPTS)
 		job, err = GetJobByUrl(cliConnection, url)
 		if err != nil {
 			return job, err
@@ -28,7 +28,7 @@ func PollJob(cliConnection plugin.CliConnection, url string) (models.CFJob, erro
 			if len(job.Errors) > 0 {
 				return job, fmt.Errorf("%d %s %s", job.Errors[0].Code, job.Errors[0].Title, job.Errors[0].Detail)
 			}
-			return job, fmt.Errorf("Create service instance job failed. Job GUID: %s", job.GUID)
+			return job, fmt.Errorf("Job failed. Job GUID: %s", job.GUID)
 		}
 		if job.State == "COMPLETE" {
 			break

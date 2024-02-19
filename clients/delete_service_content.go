@@ -3,6 +3,7 @@ package clients
 import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"errors"
+	"io"
 	"net/http"
 )
 
@@ -28,6 +29,9 @@ func DeleteServiceContent(serviceURL string, accessToken string) error {
 	if response, err = client.Do(request); err != nil {
 		return err
 	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if response.StatusCode != 200 {
 		return errors.New(response.Status)
 	}

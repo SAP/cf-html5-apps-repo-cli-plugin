@@ -44,11 +44,14 @@ func CreateServiceInstanceDestination(serviceURL string, accessToken string, des
 	}
 	defer response.Body.Close()
 
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
+	if err != nil {
+		return err
+	}
+
 	if response.StatusCode > 201 {
-		body, err = io.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf("Could not create destination: [%s] %+v", response.Status, body)
-		}
+		return fmt.Errorf("Could not create destination: [%s] %+v", response.Status, body)
 	}
 
 	return nil

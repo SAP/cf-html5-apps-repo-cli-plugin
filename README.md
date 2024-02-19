@@ -281,6 +281,7 @@ The configuration of the CF HTML5 Applications Repository CLI Plugin is done by 
 The following are supported:
   * `DEBUG=1` - enables trace logs with detailed information about currently running steps. If you want to
      see also the sensitive information in the trace logs (e.g. access tokens), use `DEBUG=2` instead.
+     To see the raw HTTP responses in trace logs, use `DEBUG=3`.
   * `HTML5_CACHE=1` - enables persisted cache. Disabled by default. Should be enabled only for sequential
      execution of the CF HTML5 Applications Repository CLI Plugin commands in the same context 
      (org/space/user) during short period of time (less than 12 hours)
@@ -297,6 +298,7 @@ In addition CF HTML5 Applications Repository CLI Plugin supports the following c
   * `--skip-ssl-validation` - command line argument option of `cf login`
   * `SSL_CERT_FILE` - environment variable pointing to file with additional signing certificate
   * `SSL_CERT_DIR` - environment variable pointing to directory with `server.crt` file containing additional signing certificate
+As an alternative, you can (install)[https://docs.cloudfoundry.org/cf-cli/self-signed.html] custom or self-signed certificate on machine, where CLI is running.
 
 ## Troubleshooting
 
@@ -309,6 +311,15 @@ such as service instances of `html5-apps-repo` service and service keys for
 these service instances. If one of the flows invoked by the CF HTML5 Applications
 Repository CLI Plugin fails in the middle, these artifacts may remain
 in the current space. 
+
+#### Self-signed Certificates
+
+Note, that on macOS Cloud Foundry CLI itself (does not support)[https://github.com/cloudfoundry/cli/issues/1263] the `SSL_CERT_FILE` and `SSL_CERT_DIR`.
+Therefore, running the CLI commands is only possible if at least one of two conditions is met:
+  * The login was done with `cf login --skip-ssl-validation`, and all subsequent CLI commands ignore certificate issues
+  * The certificate of Cloud Foundry deployment was installed on machine, where CLI is running
+
+Trying to use both `--skip-ssl-validation` and `SSL_CERT_FILE` will result in commands, targeting Cloud Foundry Cloud Controller, executed without certificate validation, and commands targeting services (e.g. HTML5 Applications Repository) will check server certificate using `SSL_CERT_FILE`. 
 
 ## Limitations
 

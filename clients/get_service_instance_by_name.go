@@ -30,7 +30,9 @@ func GetServiceInstanceByName(cliConnection plugin.CliConnection, spaceGUID stri
 		}
 
 		responseObject = models.CFResponse{}
-		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+		body := []byte(strings.Join(responseStrings, ""))
+		log.Trace(log.Response{Body: body})
+		err = json.Unmarshal(body, &responseObject)
 		if err != nil {
 			return models.CFServiceInstance{}, err
 		}

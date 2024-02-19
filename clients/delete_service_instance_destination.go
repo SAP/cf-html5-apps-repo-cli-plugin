@@ -35,7 +35,7 @@ func DeleteServiceInstanceDestination(serviceURL string, accessToken string, des
 		return err
 	}
 	defer response.Body.Close()
-
+	log.Trace(log.Response{Head: response})
 	if response.StatusCode > 201 {
 		body, err = io.ReadAll(response.Body)
 		if err != nil {

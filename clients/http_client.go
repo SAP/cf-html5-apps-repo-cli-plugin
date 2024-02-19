@@ -71,7 +71,7 @@ func GetClient(trustInsecure bool, customCAPath string) (client *http.Client, er
 
 	// Trust additional certificate
 	config := &tls.Config{
-		InsecureSkipVerify: trustInsecure,
+		InsecureSkipVerify: false,
 		RootCAs:            rootCAs,
 	}
 	tr := &http.Transport{TLSClientConfig: config}

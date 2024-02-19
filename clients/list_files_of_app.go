@@ -5,7 +5,7 @@ import (
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -41,7 +41,8 @@ func ListFilesOfApp(serviceURL string, appKey string, accessToken string, appHos
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return html5Response, err
 	}

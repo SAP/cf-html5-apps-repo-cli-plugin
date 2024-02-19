@@ -4,7 +4,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -37,7 +37,8 @@ func ListApplicationsForAppRuntime(serviceURL string, accessToken string) (model
 
 	// Get response body
 	defer response.Body.Close()
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
 	if err != nil {
 		return html5Response, err
 	}

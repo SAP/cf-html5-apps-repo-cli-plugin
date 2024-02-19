@@ -40,9 +40,6 @@ func (c *HTML5Command) Initialize(name string, cliConnection plugin.CliConnectio
 		return
 	}
 	isInsecure, _ := cliConnection.IsSSLDisabled()
-	if isInsecure {
-		log.Tracef("WARNING: SSL validation is disabled. To enable it login again using 'cf login', without '--skip-ssl-validation' flag\n")
-	}
 
 	// TLS configuration
 	clients.SetInsecure(isInsecure)
@@ -293,38 +290,39 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 	}
 
 	// Filter out service instances that were recently failed to delete
-	for idx, serviceInstance := range appRuntimeServiceInstances {
+	validAppRuntimeServiceInstances := make([]models.CFServiceInstance, 0)
+	for _, serviceInstance := range appRuntimeServiceInstances {
 		if serviceInstance.LastOperation.Type == "delete" && serviceInstance.LastOperation.State == "failed" {
 			log.Tracef("Service instance %s is potentially broken and will not be reused\n", serviceInstance.Name)
-			appRuntimeServiceInstances[idx] = appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1]
-			appRuntimeServiceInstances = appRuntimeServiceInstances[:len(appRuntimeServiceInstances)-1]
+			continue
 		}
+		validAppRuntimeServiceInstances = append(validAppRuntimeServiceInstances, serviceInstance)
 	}
-	html5Context.HTML5AppRuntimeServiceInstances = appRuntimeServiceInstances
+	html5Context.HTML5AppRuntimeServiceInstances = validAppRuntimeServiceInstances
 
 	// Create instance of app-runtime plan if needed
 	var appRuntimeServiceInstance *models.CFServiceInstance
-	if len(appRuntimeServiceInstances) == 0 {
+	if len(validAppRuntimeServiceInstances) == 0 {
 		log.Tracef("Creating service instance of %s service app-runtime plan\n", serviceName)
 		appRuntimeServiceInstance, err = clients.CreateServiceInstance(c.CliConnection, context.SpaceID, *appRuntimeServicePlan, nil, "")
 		if err != nil {
 			return html5Context, errors.New("Could not create service instance of app-runtime plan: " + err.Error())
 		}
-		appRuntimeServiceInstances = append(appRuntimeServiceInstances, *appRuntimeServiceInstance)
+		validAppRuntimeServiceInstances = append(validAppRuntimeServiceInstances, *appRuntimeServiceInstance)
 	}
 	html5Context.HTML5AppRuntimeServiceInstance = appRuntimeServiceInstance
 
 	// Get service key
-	log.Tracef("Getting list of service keys for service %s\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
-	appRuntimeServiceInstanceKeys, err := clients.GetServiceKeys(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID)
+	log.Tracef("Getting list of service keys for service %s\n", validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].Name)
+	appRuntimeServiceInstanceKeys, err := clients.GetServiceKeys(c.CliConnection, validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].GUID)
 	if err != nil {
 		return html5Context, errors.New("Could not get service keys of " +
-			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
+			validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
 	}
 	if len(appRuntimeServiceInstanceKeys) > 0 {
 		log.Tracef("Found %d service keys for service %s, using service key with GUID=%s\n",
 			len(appRuntimeServiceInstanceKeys),
-			appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name,
+			validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].Name,
 			appRuntimeServiceInstanceKeys[len(appRuntimeServiceInstanceKeys)-1].GUID)
 		html5Context.HTML5AppRuntimeServiceInstanceKeys = appRuntimeServiceInstanceKeys
 	}
@@ -340,11 +338,11 @@ func (c *HTML5Command) GetHTML5Context(context Context) (HTML5Context, error) {
 				return html5Context, errors.New("Service key configuration is not a valid JSON: " + err.Error())
 			}
 		}
-		log.Tracef("Creating service key for %s service\n", appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name)
-		appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].GUID, keyParams)
+		log.Tracef("Creating service key for %s service\n", validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].Name)
+		appRuntimeServiceInstanceKey, err := clients.CreateServiceKey(c.CliConnection, validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].GUID, keyParams)
 		if err != nil {
 			return html5Context, errors.New("Could not create service key of " +
-				appRuntimeServiceInstances[len(appRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
+				validAppRuntimeServiceInstances[len(validAppRuntimeServiceInstances)-1].Name + " service instance: " + err.Error())
 		}
 		html5Context.HTML5AppRuntimeServiceInstanceKeys = append(html5Context.HTML5AppRuntimeServiceInstanceKeys, *appRuntimeServiceInstanceKey)
 		html5Context.HTML5AppRuntimeServiceInstanceKey = appRuntimeServiceInstanceKey
@@ -545,7 +543,7 @@ func loadCache() error {
 		return nil
 	} else if os.IsNotExist(err) {
 		log.Traceln("Configuration file not found. Using defaults")
-		return err
+		return nil
 	} else {
 		log.Fatalln("Could not check existence of configuration file")
 		return err

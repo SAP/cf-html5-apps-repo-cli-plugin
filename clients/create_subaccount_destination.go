@@ -5,7 +5,7 @@ import (
 	models "cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -44,8 +44,14 @@ func CreateSubaccountDestination(serviceURL string, accessToken string, destinat
 	}
 	defer response.Body.Close()
 
+	body, err = io.ReadAll(response.Body)
+	log.Trace(log.Response{Head: response, Body: body})
+	if err != nil {
+		return err
+	}
+
 	if response.StatusCode > 201 {
-		body, err = ioutil.ReadAll(response.Body)
+		body, err = io.ReadAll(response.Body)
 		if err != nil {
 			return fmt.Errorf("Could not create destination: [%s] %+v", response.Status, body)
 		}

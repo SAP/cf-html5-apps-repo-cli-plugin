@@ -17,6 +17,8 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 	var responseStrings []string
 	var err error
 	var nextURL *string
+	var pathStart int
+	var pathSlice string
 
 	if cachedServicePlans, ok := cache.Get("GetServicePlans:" + serviceGUID); ok {
 		log.Tracef("Returning cached list of service plans\n")
@@ -36,7 +38,9 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 		}
 
 		responseObject = models.CFResponse{}
-		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+		body := []byte(strings.Join(responseStrings, ""))
+		log.Trace(log.Response{Body: body})
+		err = json.Unmarshal(body, &responseObject)
 		if err != nil {
 			return nil, err
 		}
@@ -52,6 +56,13 @@ func GetServicePlans(cliConnection plugin.CliConnection, serviceGUID string) ([]
 			break
 		}
 		nextURL = responseObject.Pagination.Next.Href
+		if nextURL != nil {
+			pathStart = strings.Index(*nextURL, "/v3/service_plans")
+			if pathStart > 0 {
+				pathSlice = (*nextURL)[pathStart:]
+				nextURL = &pathSlice
+			}
+		}
 	}
 
 	cache.Set("GetServicePlans:"+serviceGUID, servicePlans)

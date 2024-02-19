@@ -17,6 +17,8 @@ func GetServiceKeys(cliConnection plugin.CliConnection, serviceInstanceGUID stri
 	var responseStrings []string
 	var err error
 	var nextURL *string
+	var pathStart int
+	var pathSlice string
 
 	serviceKeys = make([]models.CFServiceKey, 0)
 	firstURL := "/v3/service_credential_bindings?service_instance_guids=" + serviceInstanceGUID
@@ -30,7 +32,9 @@ func GetServiceKeys(cliConnection plugin.CliConnection, serviceInstanceGUID stri
 		}
 
 		responseObject = models.CFResponse{}
-		err = json.Unmarshal([]byte(strings.Join(responseStrings, "")), &responseObject)
+		body := []byte(strings.Join(responseStrings, ""))
+		log.Trace(log.Response{Body: body})
+		err = json.Unmarshal(body, &responseObject)
 		if err != nil {
 			return nil, err
 		}
@@ -46,6 +50,13 @@ func GetServiceKeys(cliConnection plugin.CliConnection, serviceInstanceGUID stri
 			break
 		}
 		nextURL = responseObject.Pagination.Next.Href
+		if nextURL != nil {
+			pathStart = strings.Index(*nextURL, "/v3/service_credential_bindings")
+			if pathStart > 0 {
+				pathSlice = (*nextURL)[pathStart:]
+				nextURL = &pathSlice
+			}
+		}
 	}
 
 	for idx, serviceKey := range serviceKeys {
