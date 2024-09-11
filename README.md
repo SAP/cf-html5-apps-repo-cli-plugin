@@ -331,6 +331,10 @@ by the plugin.
 
 If you need any support, have any question or have found a bug, please report it in the [GitHub bug tracking system](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/issues). We shall get back to you.
 
+## Contributing
+
+Please refer to the [Contributing to an SAP Open Source Project](https://github.com/SAP/.github/blob/main/CONTRIBUTING.md) for instructions on how to contribute to the project. 
+
 ## License
 
 This project is licensed under the Apache Software License, v. 2 except as noted otherwise in the [LICENSE](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/blob/master/LICENSE) file.
