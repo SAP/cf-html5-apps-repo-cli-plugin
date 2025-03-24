@@ -1,0 +1,77 @@
+version = 1
+SPDX-PackageName = "CF HTML5 Applications Repository CLI Plugin"
+SPDX-PackageSupplier = "Vadim Tomnikov <vadim.tomnikov@sap.com>"
+SPDX-PackageDownloadLocation = "https://github.com/SAP/cf-html5-apps-repo-cli-plugin"
+SPDX-PackageComment = "The code in this project may include calls to APIs (“API Calls”) of\n SAP or third-party products or services developed outside of this project\n (“External Products”).\n “APIs” means application programming interfaces, as well as their respective\n specifications and implementing code that allows software to communicate with\n other software.\n API Calls to External Products are not licensed under the open source license\n that governs this project. The use of such API Calls and related External\n Products are subject to applicable additional agreements with the relevant\n provider of the External Products. In no event shall the open source license\n that governs this project grant any rights in or to any External Products,or\n alter, expand or supersede any terms of the applicable additional agreements.\n If you have a valid license agreement with SAP for the use of a particular SAP\n External Product, then you may make use of any API Calls included in this\n project’s code for that SAP External Product, subject to the terms of such\n license agreement. If you do not have a valid license agreement for the use of\n a particular SAP External Product, then you may only make use of any API Calls\n in this project for that SAP External Product for your internal, non-productive\n and non-commercial test and evaluation of such API Calls. Nothing herein grants\n you any rights to use or access any SAP External Product, or provide any third\n parties the right to use of access any SAP External Product, through API Calls."
+
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2018-Present SAP SE or an SAP affiliate company and CF HTML5 Applications Repository contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "vendor/guthub.com/blang/semver/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2014, Benedikt Lang"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "vendor/github.com/cloudfoundry/cli/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2015-Present, CloudFoundry.org Foundation Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "vendor/github.com/cloudfoundry/gofileutils/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2015-Present, CloudFoundry.org Foundation Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "vendor/github.com/nicksnyder/go-i18n/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2014, Nick Snyder https://github.com/nicksnyder"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "vendor/golang.org/x/crypto/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2009, The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/golang.org/x/net/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2009, The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/golang.org/x/sync/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2009, The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/golang.org/x/sys/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2009, The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/golang.org/x/text/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2009, The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/gopkg.in/mgo.v2/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "n/a"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "vendor/gopkg.in/yaml.v2/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "n/a"
+SPDX-License-Identifier = "Apache-2.0"
