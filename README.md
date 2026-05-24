@@ -338,4 +338,3 @@ Please refer to the [Contributing to an SAP Open Source Project](https://github.
 ## License
 
 This project is licensed under the Apache Software License, v. 2 except as noted otherwise in the [LICENSE](https://github.com/SAP/cf-html5-apps-repo-cli-plugin/blob/master/LICENSE) file.
-
