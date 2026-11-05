@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.4.10] - 2026-11-04
+### Fixed
+- Use clear path when saving a file
+- Respect debug log level when creating destination
+- Assign minimal required permissions to configuration file
+
 ## [1.4.9] - 2024-02-19
 ### Added
 - Support `DEBUG=3` to print raw responses in the trace logs
