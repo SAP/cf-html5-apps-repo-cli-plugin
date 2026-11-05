@@ -18,12 +18,12 @@ func CreateServiceInstanceDestination(serviceURL string, accessToken string, des
 	var payload []byte
 	var body []byte
 
-	log.Tracef("Marshaling destination configuration: %+v\n", destination)
+	log.Tracef("Marshaling destination configuration: %+v\n", log.Sensitive{Data: destination})
 	payload, err = destination.MarshalJSON()
 	if err != nil {
 		return err
 	}
-	log.Tracef("Destination configuration JSON: %s\n", payload)
+	log.Tracef("Destination configuration JSON: %s\n", log.Sensitive{Data: string(payload)})
 
 	destinationsURL = serviceURL + "/destination-configuration/v1/instanceDestinations/"
 	log.Tracef("Making request to: %s\n", destinationsURL)

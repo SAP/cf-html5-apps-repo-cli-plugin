@@ -1,5 +1,6 @@
 NAME=cf-html5-apps-repo-cli-plugin
-VERSION=1.4.9
+VERSION=1.4.10
+GOPATH ?= $(shell go env GOPATH)
 
 # Build the project
 all: clean build install
@@ -8,19 +9,19 @@ clean:
 	rm -f ${NAME}
 
 build:
-	GO111MODULE=off go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" 
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/${NAME}
 
 install:
 	cf install-plugin -f ${NAME}
 
 release:
-	rm -rf dist 
+	rm -rf dist
 	mkdir dist
-	GO111MODULE=off GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-amd64
-	GO111MODULE=off GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-darwin-arm64
-	GO111MODULE=off GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-amd64
-	GO111MODULE=off GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-linux-arm64
-	GO111MODULE=off GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o dist/${NAME}-windows-amd64.exe
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/dist/${NAME}-darwin-amd64
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/dist/${NAME}-darwin-arm64
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/dist/${NAME}-linux-amd64
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/dist/${NAME}-linux-arm64
+	cd ${GOPATH}/src/cf-html5-apps-repo-cli-plugin && GO111MODULE=off GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -gcflags "all=-trimpath=${HOME}" -o ${CURDIR}/dist/${NAME}-windows-amd64.exe
 	@echo "===================="
 	@echo "- authors:"
 	@echo "  - contact: micellius@gmail.com"

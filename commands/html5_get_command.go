@@ -5,13 +5,33 @@ import (
 	"cf-html5-apps-repo-cli-plugin/clients/models"
 	"cf-html5-apps-repo-cli-plugin/log"
 	"cf-html5-apps-repo-cli-plugin/ui"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/plugin"
 )
+
+// safeFilePath joins serverPath under root, rejecting traversal attempts.
+// serverPath must not be absolute and must contain no ".." segments.
+// Returns an error if the resolved path would escape root.
+func safeFilePath(root, serverPath string) (string, error) {
+	if filepath.IsAbs(serverPath) {
+		return "", fmt.Errorf("server-supplied path is absolute: %q", serverPath)
+	}
+	if strings.Contains(serverPath, "..") {
+		return "", fmt.Errorf("server-supplied path contains '..': %q", serverPath)
+	}
+	cleanRoot := filepath.Clean(root)
+	target := filepath.Clean(filepath.Join(cleanRoot, serverPath))
+	if !strings.HasPrefix(target, cleanRoot+string(filepath.Separator)) {
+		return "", fmt.Errorf("server-supplied path escapes output directory: %q", serverPath)
+	}
+	return target, nil
+}
 
 // GetCommand fetches the HTML5 application
 // file contents
@@ -246,7 +266,11 @@ func (c *GetCommand) GetAppHostFilesContents(output string, appHostNameOrGUID st
 			return Failure
 		}
 		// File path
-		filePath := cwd + strings.Replace(file.FilePath, "/", slash, -1)
+		filePath, err := safeFilePath(cwd, strings.Replace(file.FilePath, "/", slash, -1))
+		if err != nil {
+			ui.Failed("Rejected unsafe file path %s: %+v", file.FilePath, err)
+			return Failure
+		}
 		// Directory path
 		dirPath := strings.Split(filePath, slash)
 		dirPath = dirPath[:len(dirPath)-1]
@@ -499,7 +523,11 @@ func (c *GetCommand) GetApplicationFilesContents(output string, appName string, 
 			return Failure
 		}
 		// File path
-		filePath := cwd + strings.Replace(file.FilePath, "/", slash, -1)
+		filePath, err := safeFilePath(cwd, strings.Replace(file.FilePath, "/", slash, -1))
+		if err != nil {
+			ui.Failed("Rejected unsafe file path %s: %+v", file.FilePath, err)
+			return Failure
+		}
 		// Directory path
 		dirPath := strings.Split(filePath, slash)
 		dirPath = dirPath[:len(dirPath)-1]

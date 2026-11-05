@@ -551,12 +551,21 @@ func loadCache() error {
 }
 
 func saveCache() error {
-	if _, err := os.Stat(configFilePath); err == nil {
+	if info, err := os.Stat(configFilePath); err == nil {
 		var config map[string]interface{}
 		var data []byte
 		var err error
 
 		log.Traceln("Configuration file found. Updating cache")
+
+		// Fix permissions, if needed
+		if info.Mode().Perm() != 0600 {
+			log.Traceln("Configuration file has incorrect permissions. Fixing them")
+			if err = os.Chmod(configFilePath, 0600); err != nil {
+				log.Fatalln("Could not fix configuration file permissions")
+				return err
+			}
+		}
 
 		// Read configuration file
 		data, err = ioutil.ReadFile(configFilePath)
@@ -584,7 +593,7 @@ func saveCache() error {
 		}
 
 		// Write configuration file
-		err = ioutil.WriteFile(configFilePath, data, 0644)
+		err = ioutil.WriteFile(configFilePath, data, 0600)
 		if err != nil {
 			log.Fatalln("Could not write configuration file")
 			return err
@@ -611,7 +620,7 @@ func saveCache() error {
 		}
 
 		// Write configuration file
-		err = ioutil.WriteFile(configFilePath, data, 0644)
+		err = ioutil.WriteFile(configFilePath, data, 0600)
 		if err != nil {
 			log.Fatalln("Could not write configuration file")
 			return err
